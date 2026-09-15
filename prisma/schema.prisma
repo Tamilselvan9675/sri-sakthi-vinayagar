@@ -1,0 +1,404 @@
+// =============================================================================
+// Sakthi Vinayagar Temple Management Platform
+// Prisma Schema
+// =============================================================================
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// -----------------------------------------------------------------------------
+// Enums
+// -----------------------------------------------------------------------------
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  EDITOR
+  FINANCE_MANAGER
+}
+
+enum EventType {
+  CULTURAL
+  RELIGIOUS
+  COMPETITION
+  SPORTS
+  OTHER
+}
+
+enum PaymentMethod {
+  CASH
+  UPI
+  BANK_TRANSFER
+  CARD
+  ONLINE
+  OTHER
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+// -----------------------------------------------------------------------------
+// Models
+// -----------------------------------------------------------------------------
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String?
+  role      Role     @default(EDITOR)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  auditLogs AuditLog[]
+}
+
+model TempleSettings {
+  id              String   @id @default(cuid())
+  templeNameEn    String
+  templeNameTa    String
+  addressEn       String?
+  addressTa       String?
+  phone           String?
+  whatsapp        String?
+  email           String?
+  latitude        Float?
+  longitude       Float?
+  upiId           String?
+  qrCodeUrl       String?
+  logoUrl         String?
+  primarySettings Json?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model FestivalYear {
+  id            String   @id @default(cuid())
+  year          Int      @unique
+  titleEn       String
+  titleTa       String
+  descriptionEn String?
+  descriptionTa String?
+  startDate     DateTime
+  endDate       DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  events         Event[]
+  poojaSchedules PoojaSchedule[]
+  winners        Winner[]
+  galleryAlbums  GalleryAlbum[]
+  videos         Video[]
+  invitations    Invitation[]
+  expenses       Expense[]
+  donations      Donation[]
+}
+
+model Event {
+  id             String    @id @default(cuid())
+  festivalYearId String
+  date           DateTime
+  time           String?
+  titleEn        String
+  titleTa        String
+  descriptionEn  String?
+  descriptionTa  String?
+  eventType      EventType @default(OTHER)
+  location       String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  festivalYear FestivalYear @relation(fields: [festivalYearId], references: [id], onDelete: Cascade)
+  winners      Winner[]
+
+  @@index([festivalYearId, date])
+}
+
+model PoojaSchedule {
+  id             String   @id @default(cuid())
+  festivalYearId String
+  date           DateTime
+  time           String?
+  titleEn        String
+  titleTa        String
+  descriptionEn  String?
+  descriptionTa  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  festivalYear FestivalYear @relation(fields: [festivalYearId], references: [id], onDelete: Cascade)
+
+  @@index([festivalYearId, date])
+}
+
+model Winner {
+  id             String   @id @default(cuid())
+  festivalYearId String
+  eventId        String?
+  name           String
+  categoryEn     String
+  categoryTa     String
+  position       String
+  prizeEn        String?
+  prizeTa        String?
+  photoUrl       String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  festivalYear FestivalYear @relation(fields: [festivalYearId], references: [id], onDelete: Restrict)
+  event        Event?       @relation(fields: [eventId], references: [id], onDelete: SetNull)
+
+  @@index([festivalYearId])
+}
+
+model GalleryAlbum {
+  id             String   @id @default(cuid())
+  festivalYearId String
+  titleEn        String
+  titleTa        String
+  descriptionEn  String?
+  descriptionTa  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  festivalYear FestivalYear  @relation(fields: [festivalYearId], references: [id], onDelete: Cascade)
+  items        GalleryItem[]
+}
+
+model GalleryItem {
+  id           String   @id @default(cuid())
+  albumId      String
+  titleEn      String?
+  titleTa      String?
+  imageUrl     String
+  thumbnailUrl String?
+  altTextEn    String?
+  altTextTa    String?
+  createdAt    DateTime @default(now())
+
+  album GalleryAlbum @relation(fields: [albumId], references: [id], onDelete: Cascade)
+
+  @@index([albumId])
+}
+
+model Video {
+  id             String   @id @default(cuid())
+  festivalYearId String
+  titleEn        String
+  titleTa        String
+  descriptionEn  String?
+  descriptionTa  String?
+  videoUrl       String
+  thumbnailUrl   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  festivalYear FestivalYear @relation(fields: [festivalYearId], references: [id], onDelete: Cascade)
+
+  @@index([festivalYearId])
+}
+
+model Invitation {
+  id             String   @id @default(cuid())
+  festivalYearId String
+  titleEn        String
+  titleTa        String
+  contentEn      String?
+  contentTa      String?
+  imageUrl       String?
+  pdfUrl         String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  festivalYear FestivalYear @relation(fields: [festivalYearId], references: [id], onDelete: Cascade)
+
+  @@index([festivalYearId])
+}
+
+model Organizer {
+  id        String   @id @default(cuid())
+  name      String
+  roleEn    String
+  roleTa    String
+  phone     String?
+  whatsapp  String?
+  email     String?
+  photoUrl  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ExpenseCategory {
+  id        String   @id @default(cuid())
+  nameEn    String
+  nameTa    String
+  createdAt DateTime @default(now())
+
+  expenses Expense[]
+}
+
+model Expense {
+  id             String   @id @default(cuid())
+  festivalYearId String
+  categoryId     String
+  descriptionEn  String
+  descriptionTa  String
+  amount         Decimal  @db.Decimal(10, 2)
+  expenseDate    DateTime
+  receiptUrl     String?
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  festivalYear FestivalYear    @relation(fields: [festivalYearId], references: [id], onDelete: Restrict)
+  category     ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@index([festivalYearId, expenseDate])
+}
+
+model Donation {
+  id               String        @id @default(cuid())
+  festivalYearId   String?
+  donorName        String?
+  donorPhone       String?
+  amount           Decimal       @db.Decimal(10, 2)
+  paymentMethod    PaymentMethod @default(CASH)
+  paymentReference String?
+  status           PaymentStatus @default(COMPLETED)
+  paymentId        String?       @unique
+  donatedAt        DateTime      @default(now())
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  festivalYear FestivalYear? @relation(fields: [festivalYearId], references: [id], onDelete: Restrict)
+  payment      Payment?      @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([festivalYearId, donatedAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String
+  action     String
+  entityType String
+  entityId   String
+  oldValue   Json?
+  newValue   Json?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  @@index([entityType, entityId])
+  @@index([userId])
+}
+
+// -----------------------------------------------------------------------------
+// Finance Models
+// -----------------------------------------------------------------------------
+
+enum ContributionPlanFrequency {
+  MONTHLY
+  YEARLY
+  ONE_TIME
+  CUSTOM
+}
+
+enum ContributionStatus {
+  PENDING
+  PAID
+  PARTIAL
+  OVERDUE
+  CANCELLED
+  REFUNDED
+}
+
+model Member {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String?
+  whatsapp  String?
+  email     String?
+  address   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  plans         ContributionPlan[]
+  contributions Contribution[]
+}
+
+model ContributionPlan {
+  id               String                    @id @default(cuid())
+  memberId         String
+  amount           Decimal                   @db.Decimal(10, 2)
+  frequency        ContributionPlanFrequency @default(MONTHLY)
+  collectionWindow String?                   // e.g. "1st-10th"
+  isActive         Boolean                   @default(true)
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+
+  member        Member         @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  contributions Contribution[]
+
+  @@index([memberId])
+}
+
+model Payment {
+  id                String        @id @default(cuid())
+  amount            Decimal       @db.Decimal(10, 2)
+  provider          String
+  providerOrderId   String?
+  providerPaymentId String?
+  status            PaymentStatus @default(PENDING)
+  method            PaymentMethod @default(UPI)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  donation     Donation?
+  contribution Contribution?
+}
+
+model Contribution {
+  id             String             @id @default(cuid())
+  memberId       String
+  planId         String?
+  expectedAmount Decimal            @db.Decimal(10, 2)
+  paidAmount     Decimal            @db.Decimal(10, 2) @default(0)
+  dueDate        DateTime
+  period         String             // e.g., "2026-09"
+  status         ContributionStatus @default(PENDING)
+  paymentId      String?            @unique
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  member  Member            @relation(fields: [memberId], references: [id], onDelete: Restrict)
+  plan    ContributionPlan? @relation(fields: [planId], references: [id], onDelete: SetNull)
+  payment Payment?          @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([memberId, dueDate])
+  @@index([planId])
+}
+
+model Reminder {
+  id             String    @id @default(cuid())
+  contributionId String?
+  type           String    // DUE, OVERDUE, SUCCESS, RECEIPT
+  status         String    // PENDING, SENT, FAILED
+  sentAt         DateTime?
+  error          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([contributionId])
+  @@index([status])
+}
