@@ -326,4 +326,52 @@
   .delay-300 { animation-delay: 300ms; }
   .delay-400 { animation-delay: 400ms; }
   .delay-500 { animation-delay: 500ms; }
+
+  /* Footer premium gradient */
+  .footer-gradient {
+    background: linear-gradient(
+      175deg,
+      oklch(0.28 0.10 20) 0%,
+      oklch(0.22 0.08 20) 40%,
+      oklch(0.18 0.06 20) 100%
+    );
+  }
+
+  .dark .footer-gradient {
+    background: linear-gradient(
+      175deg,
+      oklch(0.16 0.02 20) 0%,
+      oklch(0.12 0.015 25) 40%,
+      oklch(0.10 0.01 30) 100%
+    );
+  }
+
+  /* Footer fade-in from previous section */
+  .footer-fade-top {
+    position: relative;
+  }
+
+  .footer-fade-top::before {
+    content: "";
+    position: absolute;
+    top: -80px;
+    left: 0;
+    right: 0;
+    height: 80px;
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      oklch(0.28 0.10 20)
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .dark .footer-fade-top::before {
+    background: linear-gradient(
+      to bottom,
+      transparent,
+      oklch(0.16 0.02 20)
+    );
+  }
 }

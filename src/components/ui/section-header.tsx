@@ -11,7 +11,7 @@ interface SectionHeaderProps {
 export function SectionHeader({
   title,
   subtitle,
-  icon: Icon,
+  icon: Icon, 
   align = "left",
   className = "",
 }: SectionHeaderProps) {
@@ -39,7 +39,9 @@ export function SectionHeader({
 
       {/* Subtitle */}
       {subtitle && (
-        <p className="text-base sm:text-lg text-muted-foreground max-w-2xl leading-relaxed">
+        <p className={`text-base sm:text-lg text-muted-foreground max-w-2xl leading-relaxed ${
+          align === "center" ? "mx-auto" : ""
+        }`}>
           {subtitle}
         </p>
       )}

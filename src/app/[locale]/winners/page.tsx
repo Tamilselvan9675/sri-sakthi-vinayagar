@@ -1,10 +1,6 @@
 import { getMessages } from "@/i18n/get-messages";
 import { getAllFestivalYears, getWinners } from "@/lib/api/festival";
-import { FilterDropdown } from "@/components/ui/filter-dropdown";
-import { WinnerCard } from "@/components/festival/winner-card";
-import { SectionHeader } from "@/components/ui/section-header";
-import { AnimateOnScroll } from "@/components/ui/animate-on-scroll";
-import { Trophy } from "lucide-react";
+import { WinnersContent } from "./winners-content";
 
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }) {
   const { locale } = await props.params;
@@ -18,99 +14,26 @@ export async function generateMetadata(props: { params: Promise<{ locale: string
 
 export default async function WinnersPage(props: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ year?: string, category?: string }>;
 }) {
   const { locale } = await props.params;
-  const searchParams = await props.searchParams;
   const messages = await getMessages(locale);
   
-  const yearFilter = searchParams.year ? parseInt(searchParams.year) : undefined;
-  const categoryFilter = searchParams.category;
-  
-  // Fetch data
+  // Fetch ALL data server-side
   const years = await getAllFestivalYears();
-  const winners = await getWinners({ 
-    year: yearFilter,
-    category: categoryFilter
-  });
-
-  const yearOptions = years.map(y => ({
-    value: y.year.toString(),
-    label: y.year.toString()
-  }));
-
-  const dynamicCategories = Array.from(new Set(winners.map(w => w.categoryEn)));
-  const categoryOptions = dynamicCategories.map(c => ({
-    value: c,
-    label: c
-  }));
+  const winners = await getWinners();
 
   return (
-    <main className="flex min-h-screen flex-col bg-background">
-      <div className="container mx-auto px-4 md:px-6 lg:px-8 py-16 lg:py-24 max-w-7xl">
-        
-        <AnimateOnScroll>
-          <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-16">
-            <SectionHeader
-              title={messages.pages.winnersTitle}
-              subtitle={messages.pages.winnersDesc}
-              icon={Trophy}
-            />
-            
-            <div className="flex flex-col sm:flex-row gap-4 w-full lg:w-auto shrink-0 bg-card p-4 rounded-xl border border-border/50 shadow-sm">
-              <div className="w-full sm:w-48">
-                <label className="text-xs font-semibold text-primary uppercase tracking-wider mb-2 block">
-                  {messages.filters.filterByYear}
-                </label>
-                <FilterDropdown 
-                  paramName="year"
-                  options={yearOptions}
-                  defaultValue={yearFilter?.toString() || "all"}
-                  placeholder={messages.filters.allYears}
-                  messages={messages}
-                />
-              </div>
-              <div className="w-full sm:w-48">
-                <label className="text-xs font-semibold text-primary uppercase tracking-wider mb-2 block">
-                  Category
-                </label>
-                <FilterDropdown 
-                  paramName="category"
-                  options={categoryOptions}
-                  defaultValue={categoryFilter || "all"}
-                  placeholder={messages.filters.allCategories}
-                  messages={messages}
-                />
-              </div>
-            </div>
-          </div>
-        </AnimateOnScroll>
+    <main className="flex min-h-screen flex-col bg-gradient-to-b from-[#fdfbf7] via-orange-50/30 to-[#fdfbf7] dark:from-background dark:via-red-950/20 dark:to-background relative overflow-hidden">
+      {/* Premium Temple Background Glows */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-temple-gold/10 via-red-900/5 to-transparent blur-[80px] pointer-events-none z-0" />
+      <div className="absolute inset-0 bg-[url('/images/temple-pattern.svg')] opacity-[0.03] dark:opacity-[0.05] bg-repeat pointer-events-none z-0" />
 
-        {winners.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {winners.map((winner, i) => (
-              <AnimateOnScroll key={winner.id} delay={i * 50}>
-                <WinnerCard 
-                  winner={winner} 
-                  locale={locale} 
-                  messages={messages} 
-                  showYear={!yearFilter}
-                />
-              </AnimateOnScroll>
-            ))}
-          </div>
-        ) : (
-          <AnimateOnScroll>
-            <div className="flex flex-col items-center justify-center py-32 px-4 text-center border rounded-3xl border-dashed border-primary/20 bg-primary/5">
-              <Trophy className="h-16 w-16 text-primary/30 mb-6" />
-              <h3 className="text-2xl font-display font-bold mb-3 text-foreground">
-                No Winners Found
-              </h3>
-              <p className="text-muted-foreground">{messages.home.noData}</p>
-            </div>
-          </AnimateOnScroll>
-        )}
-      </div>
+      <WinnersContent 
+        winners={winners} 
+        years={years} 
+        locale={locale} 
+        messages={messages} 
+      />
     </main>
   );
 }
