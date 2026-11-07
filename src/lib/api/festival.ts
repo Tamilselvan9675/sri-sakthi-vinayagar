@@ -1,5 +1,12 @@
 import { db } from "@/lib/db";
 import { Prisma } from "@/generated/prisma/client";
+import { getCmsFestivalYears, getCmsWinners } from "@/lib/cms/content";
+
+/*
+ * Public loaders for years / events / winners are CMS-first (Payload).
+ * If the CMS has no published content (or is unreachable) they fall back to
+ * the legacy Prisma tables, so nothing breaks while content is migrated.
+ */
 
 /**
  * Retrieves the active festival year based on the current date,
@@ -53,6 +60,12 @@ export async function getActiveFestivalYear() {
  * Retrieves all festival years (for dropdowns/filters).
  */
 export async function getAllFestivalYears() {
+  const cms = await getCmsFestivalYears();
+  if (cms.ok && cms.data.length > 0) return cms.data;
+  return getLegacyFestivalYears();
+}
+
+async function getLegacyFestivalYears() {
   try {
     return await db.festivalYear.findMany({
       orderBy: { year: "desc" },
@@ -102,43 +115,38 @@ export async function getOrganizers() {
 }
 
 /**
- * Retrieves pooja schedules with optional year filter.
- */
-export async function getPoojaSchedules(year?: number) {
-  try {
-    const whereClause = year ? { festivalYear: { year } } : {};
-    return await db.poojaSchedule.findMany({
-      where: whereClause,
-      orderBy: { date: "asc" },
-      include: { festivalYear: { select: { year: true } } },
-    });
-  } catch (error) {
-    console.warn("Failed to fetch pooja schedules:", error instanceof Error ? error.message : String(error));
-    return [];
-  }
-}
-
-/**
- * Retrieves events with optional year filter.
- */
-export async function getEvents(year?: number) {
-  try {
-    const whereClause = year ? { festivalYear: { year } } : {};
-    return await db.event.findMany({
-      where: whereClause,
-      orderBy: { date: "asc" },
-      include: { festivalYear: { select: { year: true } } },
-    });
-  } catch (error) {
-    console.warn("Failed to fetch events:", error instanceof Error ? error.message : String(error));
-    return [];
-  }
-}
-
-/**
  * Retrieves winners with optional filters.
  */
 export async function getWinners(filters?: { year?: number; eventId?: string; category?: string }) {
+  const cms = await getCmsWinners();
+  if (cms.ok && cms.data.length > 0 && !filters?.eventId) {
+    const now = new Date();
+    return cms.data
+      .filter((w) => (filters?.year ? w.festivalYear.year === filters.year : true))
+      .filter((w) =>
+        filters?.category ? w.categoryEn.toLowerCase() === filters.category.toLowerCase() : true,
+      )
+      .map((w) => ({
+        id: w.id,
+        festivalYearId: String(w.festivalYear.year),
+        eventId: null,
+        name: w.name,
+        categoryEn: w.categoryEn,
+        categoryTa: w.categoryTa,
+        position: w.position,
+        prizeEn: w.prizeEn,
+        prizeTa: w.prizeTa,
+        photoUrl: w.photoUrl,
+        createdAt: now,
+        updatedAt: now,
+        festivalYear: w.festivalYear,
+        event: null,
+      }));
+  }
+  return getLegacyWinners(filters);
+}
+
+async function getLegacyWinners(filters?: { year?: number; eventId?: string; category?: string }) {
   try {
     const whereClause: Prisma.WinnerWhereInput = {};
     

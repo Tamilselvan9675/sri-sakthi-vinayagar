@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { templeSettingsSchema, TempleSettingsFormValues } from "@/lib/validations/settings";
-import { updateTempleSettings } from "@/app/[locale]/admin/settings/actions";
+import { updateTempleSettings } from "@/app/(site)/[locale]/admin/settings/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

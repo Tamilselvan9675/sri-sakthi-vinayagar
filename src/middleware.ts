@@ -12,6 +12,8 @@ export const middleware = auth((request) => {
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/api") ||
+    pathname === "/cms" ||
+    pathname.startsWith("/cms/") ||
     pathname.includes(".") // e.g., favicon.ico, images
   ) {
     return NextResponse.next();
@@ -51,5 +53,5 @@ export const middleware = auth((request) => {
 
 export const config = {
   // Matcher ignoring `/_next/`, `/api/`, and files with extensions
-  matcher: ["/((?!api|_next/static|_next/image|.*\\.png$).*)"],
+  matcher: ["/((?!api|cms|_next/static|_next/image|.*\\.png$).*)"],
 };

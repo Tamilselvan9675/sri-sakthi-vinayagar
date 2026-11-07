@@ -10,7 +10,7 @@ import {
   Navigation,
   Share2,
 } from "lucide-react";
-import { TEMPLE_CONTACT, SOCIAL_LINKS, TEMPLE_COORDINATES } from "@/lib/constants/social";
+import { TEMPLE_CONTACT, SOCIAL_LINKS, TEMPLE_MAPS_URL, TEMPLE_MAPS_EMBED_URL } from "@/lib/constants/social";
 import { SectionHeader } from "@/components/ui/section-header";
 
 // Custom SVG Icons (Since older lucide versions lack brand icons)
@@ -55,15 +55,15 @@ export function HomeLocationSection({
   const isInView = useInView(ref, { once: true, margin: "0px 0px -60px 0px" });
 
   const phone = settings?.phone || TEMPLE_CONTACT.phone;
-  const whatsapp = settings?.whatsapp || TEMPLE_CONTACT.whatsapp;
-  const lat = settings?.latitude || TEMPLE_COORDINATES.latitude;
-  const lng = settings?.longitude || TEMPLE_COORDINATES.longitude;
+  const rawWa = settings?.whatsapp || TEMPLE_CONTACT.whatsapp;
+  const cleanWaDigits = rawWa.replace(/\D/g, "");
+  const whatsapp = cleanWaDigits.startsWith("91") && cleanWaDigits.length > 10 ? cleanWaDigits : `91${cleanWaDigits.replace(/^0+/, "")}`;
 
   const address =
     locale === "ta" ? TEMPLE_CONTACT.address.ta : TEMPLE_CONTACT.address.en;
 
-  const mapsUrl = `https://www.google.com/maps?q=${lat},${lng}`;
-  const mapsEmbedUrl = `https://www.google.com/maps?q=${lat},${lng}&z=16&output=embed`;
+  const mapsUrl = TEMPLE_MAPS_URL;
+  const mapsEmbedUrl = TEMPLE_MAPS_EMBED_URL;
 
   const handleShare = async () => {
     const shareData = {

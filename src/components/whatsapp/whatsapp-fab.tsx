@@ -9,7 +9,8 @@ interface WhatsAppFabProps {
 export function WhatsAppFab({ phoneNumber = "" }: WhatsAppFabProps) {
   if (!phoneNumber) return null;
 
-  const cleanNumber = phoneNumber.replace(/\D/g, "");
+  const digits = phoneNumber.replace(/\D/g, "");
+  const cleanNumber = digits.startsWith("91") && digits.length > 10 ? digits : `91${digits.replace(/^0+/, "")}`;
   const href = `https://wa.me/${cleanNumber}`;
 
   return (

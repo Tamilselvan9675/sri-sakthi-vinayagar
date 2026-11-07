@@ -82,7 +82,6 @@ export function Header({ locale, messages }: HeaderProps) {
   const navLinks = [
     { href: `/${locale}`, label: messages.common.home },
     { href: `/${locale}/about`, label: messages.common.about },
-    { href: `/${locale}/events`, label: messages.common.events }, // Consolidates Pooja & Events
     { href: `/${locale}/winners`, label: messages.common.winners },
     { href: `/${locale}/gallery`, label: messages.common.gallery },
     { href: `/${locale}/videos`, label: messages.common.videos },

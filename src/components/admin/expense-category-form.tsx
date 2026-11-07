@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { expenseCategorySchema, ExpenseCategoryFormValues } from "@/lib/validations/expense";
-import { createExpenseCategory, updateExpenseCategory } from "@/app/[locale]/admin/expense-categories/actions";
+import { createExpenseCategory, updateExpenseCategory } from "@/app/(site)/[locale]/admin/expense-categories/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

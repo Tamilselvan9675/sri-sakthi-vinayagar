@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { expenseSchema, ExpenseFormValues } from "@/lib/validations/expense";
-import { createExpense, updateExpense } from "@/app/[locale]/admin/expenses/actions";
+import { createExpense, updateExpense } from "@/app/(site)/[locale]/admin/expenses/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

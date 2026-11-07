@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { donationSchema, DonationFormValues } from "@/lib/validations/donation";
-import { createDonationOrder } from "@/app/[locale]/donations/actions";
+import { createDonationOrder } from "@/app/(site)/[locale]/donations/actions";
 // Removed Prisma import to prevent Turbopack node leak
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

@@ -16,12 +16,10 @@ import {
   addDays
 } from "date-fns";
 import { enUS, ta } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Flame, MapPin, ArrowRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Flame, MapPin } from "lucide-react";
 import { Messages } from "@/i18n/get-messages";
 import { mockPoojas, mockEvents } from "@/lib/constants/mock-schedule";
 import { SectionHeader } from "@/components/ui/section-header";
-import { MotionButton } from "./motion-button";
-import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
 
 interface ScheduleCalendarSectionProps {
@@ -63,12 +61,6 @@ export function ScheduleCalendarSection({ locale }: ScheduleCalendarSectionProps
           subtitle={locale === "ta" ? "கோயிலின் சிறப்பு பூஜைகள் மற்றும் நிகழ்வுகளை பற்றி தெரிந்து கொள்ளுங்கள்." : "Stay updated with the temple's upcoming poojas and special events."}
           icon={CalendarIcon}
         />
-        <Link href={`/${locale}/pooja`}>
-          <MotionButton variant="outline-temple" className="text-xs py-2 px-4 h-9">
-            {locale === "ta" ? "முழு அட்டவணை" : "View Full Schedule"}
-            <ArrowRight className="h-3.5 w-3.5 ml-2" />
-          </MotionButton>
-        </Link>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 lg:gap-8">

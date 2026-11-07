@@ -94,7 +94,9 @@ export function Footer({ locale, messages }: FooterProps) {
   const isInView = useInView(ref, { once: true, margin: "0px 0px -40px 0px" });
 
   const phone = TEMPLE_CONTACT.phone;
-  const whatsapp = TEMPLE_CONTACT.whatsapp;
+  const rawWa = TEMPLE_CONTACT.whatsapp;
+  const cleanWaDigits = rawWa.replace(/\D/g, "");
+  const whatsapp = cleanWaDigits.startsWith("91") && cleanWaDigits.length > 10 ? cleanWaDigits : `91${cleanWaDigits.replace(/^0+/, "")}`;
   const address = locale === "ta" ? TEMPLE_CONTACT.address.ta : TEMPLE_CONTACT.address.en;
   // A shorter version of the address for the top bar
   const shortAddress = locale === "ta" ? "கடம்பாடி, மாமல்லபுரம்" : "Kadambadi, Mamallapuram";
@@ -102,8 +104,6 @@ export function Footer({ locale, messages }: FooterProps) {
   const templeLinks = [
     { href: `/${locale}/about`, label: messages.common.about },
     { href: `/${locale}/story`, label: messages.common.vinayagarStory },
-    { href: `/${locale}/pooja`, label: messages.common.pooja },
-    { href: `/${locale}/events`, label: messages.common.events },
   ];
 
   const festivalLinks = [

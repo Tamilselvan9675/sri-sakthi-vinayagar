@@ -17,25 +17,27 @@ export const TEMPLE_CONTACT = {
 export const SOCIAL_LINKS = {
   /**
    * Instagram URL for the temple.
-   * Set this to your actual Instagram profile URL.
-   * Leave empty string if not available.
    */
-  instagram: "https://instagram.com",
+  instagram: "https://www.instagram.com/kadambadi_village?vrfl=MXdpbjJ4Y3RkcXF0Mg==",
 
   /**
    * Google Maps URL for the temple.
    * Falls back to coordinates-based URL if Place ID not set.
    */
-  googleMapsPlaceUrl:
-    "https://www.google.com/maps/search/?api=1&query=Sri+Sakthi+Vinayagar+Temple+Kadambadi+Mamallapuram",
+  googleMapsPlaceUrl: "https://maps.app.goo.gl/T6p9tVEcig7WMKTx5",
 } as const;
 
 /**
- * Fallback coordinates for the temple location.
- * Used when database settings don't have lat/lng.
- * Approximate location: Kadambadi, Mamallapuram area.
+ * Single source of truth for the temple location.
+ * All maps, links, directions and embeds derive from these values.
  */
 export const TEMPLE_COORDINATES = {
-  latitude: 12.6269,
-  longitude: 80.1927,
+  latitude: 12.597478,
+  longitude: 80.147670,
 } as const;
+
+/** Google Maps link / directions to the temple coordinates. */
+export const TEMPLE_MAPS_URL = "https://maps.app.goo.gl/T6p9tVEcig7WMKTx5";
+
+/** Google Maps embed (iframe) URL for the temple coordinates. */
+export const TEMPLE_MAPS_EMBED_URL = `https://www.google.com/maps?q=${TEMPLE_COORDINATES.latitude},${TEMPLE_COORDINATES.longitude}&z=16&output=embed`;
