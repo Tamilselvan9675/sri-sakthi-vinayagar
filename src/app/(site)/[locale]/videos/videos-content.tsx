@@ -108,7 +108,7 @@ export function VideosContent({ locale, messages, items, categories, loadError }
                   <option key={y} value={y}>{y}</option>
                 ))}
               </GlassSelect>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-temple-gold pointer-events-none group-hover:translate-y-[2px] transition-transform" />
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-temple-gold pointer-events-none" />
             </div>
           </div>
 
@@ -128,7 +128,7 @@ export function VideosContent({ locale, messages, items, categories, loadError }
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
               </GlassSelect>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-temple-gold pointer-events-none group-hover:translate-y-[2px] transition-transform" />
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-temple-gold pointer-events-none" />
             </div>
           </div>
           

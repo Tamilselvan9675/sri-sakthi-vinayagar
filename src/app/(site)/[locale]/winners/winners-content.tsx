@@ -42,7 +42,7 @@ export function WinnersContent({ winners, years, locale, messages }: WinnersCont
         </div>
         
         {/* Premium Year Dropdown */}
-        <div className="shrink-0 relative group z-20">
+        <div className="shrink-0 relative group z-20 w-full sm:w-48">
           <label className="text-xs font-bold text-temple-gold uppercase tracking-widest mb-2 block font-display">
             {messages.filters?.filterByYear || "Select Year"}
           </label>
@@ -50,7 +50,7 @@ export function WinnersContent({ winners, years, locale, messages }: WinnersCont
             <GlassSelect
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="appearance-none w-full sm:w-48 bg-white/80 dark:bg-card/80 backdrop-blur-md border border-temple-gold/30 rounded-xl px-4 py-3 pr-10 text-foreground font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-temple-gold/50 focus:border-temple-gold transition-all duration-300 cursor-pointer hover:shadow-md hover:bg-white dark:hover:bg-card"
+              className="appearance-none w-full bg-white/80 dark:bg-card/80 backdrop-blur-md border border-temple-gold/30 rounded-xl px-4 py-3 pr-10 text-foreground font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-temple-gold/50 focus:border-temple-gold transition-all duration-300 cursor-pointer hover:shadow-md hover:bg-white dark:hover:bg-card"
             >
               {sortedYears.map((y) => (
                 <option key={y.year} value={y.year}>
@@ -58,7 +58,7 @@ export function WinnersContent({ winners, years, locale, messages }: WinnersCont
                 </option>
               ))}
             </GlassSelect>
-            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-temple-gold pointer-events-none group-hover:translate-y-[2px] transition-transform" />
+            <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-temple-gold pointer-events-none" />
             <div className="absolute -inset-0.5 bg-gradient-to-r from-temple-gold/30 to-red-900/30 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition duration-500 pointer-events-none -z-10" />
           </div>
         </div>
