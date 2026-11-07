@@ -1,4 +1,5 @@
 "use client";
+import { GlassSelect } from "@/components/ui/glass-select";
 
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
@@ -98,7 +99,7 @@ export function VideosContent({ locale, messages, items, categories, loadError }
               {messages.filters?.filterByYear || "Select Year"}
             </label>
             <div className="relative">
-              <select
+              <GlassSelect
                 value={selectedYear}
                 onChange={(e) => setSelectedYear(Number(e.target.value))}
                 className="appearance-none w-full sm:w-40 bg-white/80 dark:bg-card/80 backdrop-blur-md border border-temple-gold/30 rounded-xl px-4 py-3 pr-10 text-foreground font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-temple-gold/50 focus:border-temple-gold transition-all duration-300 cursor-pointer hover:shadow-md"
@@ -106,7 +107,7 @@ export function VideosContent({ locale, messages, items, categories, loadError }
                 {years.map((y) => (
                   <option key={y} value={y}>{y}</option>
                 ))}
-              </select>
+              </GlassSelect>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-temple-gold pointer-events-none group-hover:translate-y-[2px] transition-transform" />
             </div>
           </div>
@@ -117,7 +118,7 @@ export function VideosContent({ locale, messages, items, categories, loadError }
               Category
             </label>
             <div className="relative">
-              <select
+              <GlassSelect
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
                 className="appearance-none w-full sm:w-56 bg-white/80 dark:bg-card/80 backdrop-blur-md border border-temple-gold/30 rounded-xl px-4 py-3 pr-10 text-foreground font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-temple-gold/50 focus:border-temple-gold transition-all duration-300 cursor-pointer hover:shadow-md"
@@ -126,7 +127,7 @@ export function VideosContent({ locale, messages, items, categories, loadError }
                 {categories.map((cat) => (
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
-              </select>
+              </GlassSelect>
               <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-temple-gold pointer-events-none group-hover:translate-y-[2px] transition-transform" />
             </div>
           </div>

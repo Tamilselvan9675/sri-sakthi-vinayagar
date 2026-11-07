@@ -375,3 +375,57 @@
     );
   }
 }
+/* ===== Glassmorphism dropdown lists ===== */
+:root {
+  --glass-bg: oklch(1 0 0 / 0.55);
+  --glass-border: oklch(1 0 0 / 0.45);
+  --glass-shadow: 0 8px 32px oklch(0.2 0.02 50 / 0.18);
+  --glass-hover: oklch(0.6 0.12 60 / 0.18);
+}
+.dark {
+  --glass-bg: oklch(0.2 0.012 40 / 0.55);
+  --glass-border: oklch(1 0 0 / 0.12);
+  --glass-shadow: 0 8px 32px oklch(0 0 0 / 0.5);
+  --glass-hover: oklch(1 0 0 / 0.12);
+}
+
+/* Native <select> popup list (Chromium base-select); unsupported browsers keep default list */
+@supports (appearance: base-select) {
+  select,
+  ::picker(select) {
+    appearance: base-select;
+  }
+  select:has(+ div > svg)::picker-icon {
+    display: none;
+  }
+  ::picker(select) {
+    margin-top: 6px;
+    padding: 6px;
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    background: var(--glass-bg);
+    color: var(--popover-foreground);
+    box-shadow: var(--glass-shadow);
+    -webkit-backdrop-filter: blur(16px) saturate(160%);
+    backdrop-filter: blur(16px) saturate(160%);
+    max-height: 320px;
+  }
+  select option {
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: transparent;
+    cursor: pointer;
+    transition: background-color 120ms ease;
+  }
+  select option:hover,
+  select option:focus-visible {
+    background: var(--glass-hover);
+  }
+  select option:checked {
+    background: var(--glass-hover);
+    font-weight: 600;
+  }
+  select option::checkmark {
+    color: var(--primary);
+  }
+}

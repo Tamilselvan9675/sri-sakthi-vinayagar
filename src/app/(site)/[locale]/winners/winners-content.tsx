@@ -1,4 +1,5 @@
 "use client";
+import { GlassSelect } from "@/components/ui/glass-select";
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
@@ -46,7 +47,7 @@ export function WinnersContent({ winners, years, locale, messages }: WinnersCont
             {messages.filters?.filterByYear || "Select Year"}
           </label>
           <div className="relative">
-            <select
+            <GlassSelect
               value={selectedYear}
               onChange={(e) => setSelectedYear(Number(e.target.value))}
               className="appearance-none w-full sm:w-48 bg-white/80 dark:bg-card/80 backdrop-blur-md border border-temple-gold/30 rounded-xl px-4 py-3 pr-10 text-foreground font-semibold shadow-sm focus:outline-none focus:ring-2 focus:ring-temple-gold/50 focus:border-temple-gold transition-all duration-300 cursor-pointer hover:shadow-md hover:bg-white dark:hover:bg-card"
@@ -56,7 +57,7 @@ export function WinnersContent({ winners, years, locale, messages }: WinnersCont
                   {y.year} Festival
                 </option>
               ))}
-            </select>
+            </GlassSelect>
             <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-temple-gold pointer-events-none group-hover:translate-y-[2px] transition-transform" />
             <div className="absolute -inset-0.5 bg-gradient-to-r from-temple-gold/30 to-red-900/30 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition duration-500 pointer-events-none -z-10" />
           </div>

@@ -1,4 +1,5 @@
 "use client";
+import { GlassSelect } from "@/components/ui/glass-select";
 
 import { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -82,7 +83,7 @@ export function ExpenseForm({ initialData, locale, festivalYears, categories }: 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="festivalYearId">Festival Year</Label>
-          <select 
+          <GlassSelect 
             id="festivalYearId" 
             {...form.register("festivalYearId")}
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -91,7 +92,7 @@ export function ExpenseForm({ initialData, locale, festivalYears, categories }: 
             {festivalYears.map(year => (
               <option key={year.id} value={year.id}>{year.titleEn} ({year.year})</option>
             ))}
-          </select>
+          </GlassSelect>
           {form.formState.errors.festivalYearId && (
             <p className="text-xs text-destructive">{form.formState.errors.festivalYearId.message}</p>
           )}
@@ -99,7 +100,7 @@ export function ExpenseForm({ initialData, locale, festivalYears, categories }: 
 
         <div className="space-y-2">
           <Label htmlFor="categoryId">Category</Label>
-          <select 
+          <GlassSelect 
             id="categoryId" 
             {...form.register("categoryId")}
             className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
@@ -108,7 +109,7 @@ export function ExpenseForm({ initialData, locale, festivalYears, categories }: 
             {categories.map(cat => (
               <option key={cat.id} value={cat.id}>{cat.nameEn} ({cat.nameTa})</option>
             ))}
-          </select>
+          </GlassSelect>
           {form.formState.errors.categoryId && (
             <p className="text-xs text-destructive">{form.formState.errors.categoryId.message}</p>
           )}

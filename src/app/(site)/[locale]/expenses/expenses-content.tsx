@@ -1,4 +1,5 @@
 "use client";
+import { GlassSelect } from "@/components/ui/glass-select";
 
 import { useState, useEffect, useRef } from "react";
 import { motion, useInView, animate } from "motion/react";
@@ -144,13 +145,13 @@ export function ExpensesContent({ locale, donors, expenses, year }: ExpensesCont
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/60 dark:bg-black/40 backdrop-blur-md border border-temple-gold/20 shadow-sm mb-8"
           >
             <Calendar className="w-4 h-4 text-temple-gold" />
-            <select 
+            <GlassSelect 
               value={selectedYear}
               onChange={(e) => setSelectedYear(e.target.value)}
               className="bg-transparent border-none text-sm font-semibold text-foreground focus:ring-0 cursor-pointer outline-none"
             >
               <option value={currentYearStr}>{currentYearStr} Financial Year</option>
-            </select>
+            </GlassSelect>
           </motion.div>
 
           <motion.h1 
