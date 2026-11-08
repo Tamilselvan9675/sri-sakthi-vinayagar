@@ -32,6 +32,9 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns,
   },
+  outputFileTracingIncludes: {
+    "/**": ["./expense-files/**"],
+  },
 };
 
 export default withPayload(nextConfig);

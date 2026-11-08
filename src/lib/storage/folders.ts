@@ -7,6 +7,7 @@
  */
 export const R2_FOLDERS = {
   images: "media/gallery",
+  cms: "media/cms",
   videos: "media/videos",
   financialReports: "financial-reports",
 } as const;
@@ -14,8 +15,19 @@ export const R2_FOLDERS = {
 const FINANCE_COLLECTIONS = new Set(["expense-files", "donor-files"]);
 
 /** Returns the R2 folder (the Payload `prefix`) for an upload. */
-export function resolveStorageFolder(collectionSlug: string, mimeType?: string | null): string {
+export function resolveStorageFolder(
+  collectionSlug: string,
+  mimeType?: string | null,
+  context?: { folder?: string | null; filename?: string | null } | null
+): string {
   if (FINANCE_COLLECTIONS.has(collectionSlug)) return R2_FOLDERS.financialReports;
   if (mimeType?.startsWith("video/")) return R2_FOLDERS.videos;
+  if (
+    context?.folder === "cms" ||
+    context?.folder === "site" ||
+    context?.filename?.toLowerCase().includes("logo")
+  ) {
+    return R2_FOLDERS.cms;
+  }
   return R2_FOLDERS.images;
 }
