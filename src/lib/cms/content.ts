@@ -29,6 +29,7 @@ import type {
   Winner,
 } from "@/payload-types";
 import { parseBudgetFile } from "@/lib/pdf/parse-budget-pdf";
+import { readR2File } from "@/lib/storage/r2-download";
 import { getPayloadClient } from "./payload";
 
 export type CmsResult<T> = { ok: true; data: T } | { ok: false; data: T; error: string };
@@ -492,6 +493,11 @@ async function readUploadedFileBuffer(folder: string, doc: ExpenseFile): Promise
       // Fall through to URL fetch if stored remotely (e.g. R2)
     }
   }
+  // Vercel has no persistent local upload filesystem. Retrieve finance files
+  // with the server-only R2 credentials instead of attempting an
+  // unauthenticated fetch of their S3 URL.
+  const r2Buffer = await readR2File(doc);
+  if (r2Buffer) return r2Buffer;
   if (doc.url && /^https?:\/\//i.test(doc.url)) {
     try {
       const res = await fetch(doc.url);
@@ -543,7 +549,9 @@ export async function getCmsFinance(): Promise<CmsFinance | null> {
         totalIncome: parsed.totalIncome,
         totalExpense: parsed.totalExpense,
         balance: parsed.balance,
-        pdfUrl: doc.url || `/api/expense-files/file/${encodeURIComponent(doc.filename!)}`,
+        // Keep financial files behind Payload's API route. R2's S3 endpoint is
+        // private and therefore not a browser-download URL.
+        pdfUrl: `/api/expense-files/file/${encodeURIComponent(doc.filename!)}`,
       });
     }
   } catch {

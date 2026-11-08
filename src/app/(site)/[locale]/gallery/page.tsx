@@ -3,6 +3,9 @@ import { getMessages } from "@/i18n/get-messages";
 import { getCmsGallery, GALLERY_CATEGORY_LABELS } from "@/lib/cms/content";
 import { GalleryContent } from "./gallery-content";
 
+// Gallery data is managed in Payload. Do not capture it at Vercel build time.
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }) {
   const { locale } = await props.params;
   const messages = await getMessages(locale);

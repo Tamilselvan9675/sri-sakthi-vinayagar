@@ -155,3 +155,25 @@ New uploads are sent to R2 while their existing Payload URLs stay unchanged. For
 ```bash
 npm run storage:migrate
 ```
+
+When repairing a production bucket created with an earlier version of this project, first run `npm run storage:migrate -- --dry-run` with the production `DATABASE_URL` and R2 variables, then run `npm run storage:migrate`. This moves legacy object-key paths into the format used by the current Payload S3 adapter.
+
+### Vercel production configuration
+
+Gallery and expense pages read Payload at request time. In **Vercel → Project → Settings → Environment Variables**, add these values to the **Production** environment (and Preview too if previews use the production CMS):
+
+```env
+DATABASE_URL=postgresql://...                 # The deployed Payload PostgreSQL database
+PAYLOAD_SECRET=<long stable random value>     # Must stay the same across deployments
+AUTH_SECRET=<long stable random value>
+NEXT_PUBLIC_APP_URL=https://your-domain.com
+R2_ACCOUNT_ID=<Cloudflare account ID>
+R2_ACCESS_KEY_ID=<R2 API token access key>
+R2_SECRET_ACCESS_KEY=<R2 API token secret>
+R2_BUCKET=<bucket name>
+R2_PUBLIC_URL=https://media.your-domain.com   # Optional, public images only
+```
+
+Use an R2 API token with **Object Read & Write** access limited to this bucket. The `R2_*` variables are server-only: never use `NEXT_PUBLIC_` versions. Run the Payload database migrations against the same production `DATABASE_URL` before deploying; a local database is not available to Vercel.
+
+Expense files are downloaded through `/api/expense-files/file/...`; the application reads them server-side with the R2 credentials. Do not set their database `url` values to an R2 S3 endpoint.
