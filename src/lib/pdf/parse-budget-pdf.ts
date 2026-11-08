@@ -1433,6 +1433,7 @@ export function parseBudgetXlsx(buf: Buffer): ParsedBudgetPdf | null {
     let summaryIncome: number | null = null;
     let summaryExpense: number | null = null;
     let summaryBalance: number | null = null;
+    const summaryLeftColLines: string[] = [];
     let mode: "summary" | "donors" | "expenses" = "summary";
 
     const sheetNames = [...files.keys()]

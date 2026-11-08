@@ -1,4 +1,4 @@
-import { test, expect } from '@playwright/test';
+import { test } from '@playwright/test';
 
 test('test', async ({ page }) => {
   await page.goto('http://localhost:3000/en');
@@ -29,13 +29,13 @@ test('test', async ({ page }) => {
   await page.locator('.flex.items-start').first().click();
   const page1Promise = page.waitForEvent('popup');
   await page.getByRole('button', { name: 'WhatsApp' }).click();
-  const page1 = await page1Promise;
+  await page1Promise;
   const page2Promise = page.waitForEvent('popup');
   await page.getByRole('button', { name: 'Get Directions' }).click();
-  const page2 = await page2Promise;
+  await page2Promise;
   const page3Promise = page.waitForEvent('popup');
   await page.getByRole('button', { name: 'Instagram' }).click();
-  const page3 = await page3Promise;
+  await page3Promise;
   await page.locator('iframe[title="Sri Sakthi Vinayagar Temple Location"]').contentFrame().getByRole('region', { name: 'Map' }).click();
   await page.getByText('Kadambadi, Mamallapuram').click();
   await page.getByRole('contentinfo').getByRole('link', { name: '9600145775' }).click();
@@ -58,13 +58,13 @@ test('test', async ({ page }) => {
   await page.getByText('ॐSri Sakthi Vinayagar TempleOm Gam Ganapataye NamahaKadambadi,').click();
   const page4Promise = page.waitForEvent('popup');
   await page.getByRole('link', { name: 'WhatsApp', exact: true }).click();
-  const page4 = await page4Promise;
+  await page4Promise;
   const page5Promise = page.waitForEvent('popup');
   await page.getByRole('link', { name: 'Instagram' }).click();
-  const page5 = await page5Promise;
+  await page5Promise;
   const page6Promise = page.waitForEvent('popup');
   await page.getByRole('link', { name: 'Contact us on WhatsApp' }).click();
-  const page6 = await page6Promise;
+  await page6Promise;
   await page.getByRole('button', { name: '2026' }).click();
   await page.getByRole('button', { name: '2026' }).click();
   await page.getByRole('button', { name: 'All Categories' }).click();
