@@ -22,7 +22,10 @@ const setStorageFolder =
   (slug: string): CollectionBeforeValidateHook =>
   ({ data, req }) => {
     if (req.file && data) {
-      data.prefix = resolveStorageFolder(slug, req.file.mimetype);
+      data.prefix = resolveStorageFolder(slug, req.file.mimetype, {
+        folder: (data.folder as string) || null,
+        filename: req.file.name || null,
+      });
     }
     return data;
   };

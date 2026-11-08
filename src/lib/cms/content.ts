@@ -30,6 +30,7 @@ import type {
 } from "@/payload-types";
 import { parseBudgetFile } from "@/lib/pdf/parse-budget-pdf";
 import { readR2File } from "@/lib/storage/r2-download";
+import { getR2StorageConfig } from "@/lib/storage/r2";
 import { getPayloadClient } from "./payload";
 
 export type CmsResult<T> = { ok: true; data: T } | { ok: false; data: T; error: string };
@@ -53,14 +54,26 @@ function loc(value: Localized<string>): { en: string; ta: string } {
   return { en: text, ta: text };
 }
 
+function toDirectMediaUrl(rawUrl: string | null | undefined, media: Media): string | null {
+  if (!rawUrl) return null;
+  if (/^https?:\/\//i.test(rawUrl)) return rawUrl;
+  const { publicUrl } = getR2StorageConfig();
+  if (publicUrl && media.filename) {
+    const prefix = media.prefix || "media/gallery";
+    return `${publicUrl.replace(/\/+$/, "")}/${prefix}/${encodeURIComponent(media.filename)}`;
+  }
+  return rawUrl;
+}
+
 function mediaUrl(media: number | Media | null | undefined): string | null {
   if (!media || typeof media === "number") return null;
-  return media.sizes?.card?.url || media.url || null;
+  const raw = media.sizes?.card?.url || media.url || null;
+  return toDirectMediaUrl(raw, media);
 }
 
 function mediaFullUrl(media: number | Media | null | undefined): string | null {
   if (!media || typeof media === "number") return null;
-  return media.url || null;
+  return toDirectMediaUrl(media.url, media);
 }
 
 function yearOf(rel: number | FestivalYear | null | undefined): number | null {
@@ -527,28 +540,42 @@ async function readUploadedFileBuffer(folder: string, doc: ExpenseFile): Promise
       const filePath = path.resolve(process.cwd(), folder, doc.filename);
       return await fs.readFile(filePath);
     } catch {
-      // Fall through to URL fetch if stored remotely (e.g. R2)
+      // Fall through to R2 and URL fetch
     }
   }
-  // Vercel has no persistent local upload filesystem. Retrieve finance files
-  // with the server-only R2 credentials instead of attempting an
-  // unauthenticated fetch of their S3 URL.
+
+  // Retrieve finance files with the server-only R2 credentials
   const r2Buffer = await readR2File(doc);
   if (r2Buffer) return r2Buffer;
+
+  // Try HTTP URL if absolute
   if (doc.url && /^https?:\/\//i.test(doc.url)) {
     try {
       const res = await fetch(doc.url);
       if (res.ok) return Buffer.from(await res.arrayBuffer());
     } catch {
-      return null;
+      // Fall through
     }
   }
+
+  // Try R2 public URL
+  const { publicUrl } = getR2StorageConfig();
+  if (publicUrl && doc.filename) {
+    try {
+      const r2DirectUrl = `${publicUrl.replace(/\/+$/, "")}/${doc.prefix || "financial-reports"}/${encodeURIComponent(doc.filename)}`;
+      const res = await fetch(r2DirectUrl);
+      if (res.ok) return Buffer.from(await res.arrayBuffer());
+    } catch {
+      // Fall through
+    }
+  }
+
   return null;
 }
 
 /**
- * Loads all year-wise finance records strictly from uploaded PDF/Excel files
- * in Payload CMS (`expense-files`), sorted newest year first.
+ * Loads all year-wise finance records from uploaded PDF/Excel files
+ * in Payload CMS (`expense-files`), or bundled files in `expense-files/`, sorted newest year first.
  */
 export async function getCmsFinance(): Promise<CmsFinance | null> {
   const byYear = new Map<number, CmsFinanceYear>();
@@ -586,13 +613,43 @@ export async function getCmsFinance(): Promise<CmsFinance | null> {
         totalIncome: parsed.totalIncome,
         totalExpense: parsed.totalExpense,
         balance: parsed.balance,
-        // Keep financial files behind Payload's API route. R2's S3 endpoint is
-        // private and therefore not a browser-download URL.
-        pdfUrl: `/api/expense-files/file/${encodeURIComponent(doc.filename!)}`,
+        pdfUrl: doc.url || `/api/expense-files/file/${encodeURIComponent(doc.filename!)}`,
       });
     }
-  } catch {
-    return null;
+  } catch (error) {
+    console.warn("Payload getCmsFinance failed, checking local filesystem fallback:", error);
+  }
+
+  // Resilient fallback: parse bundled files in `expense-files/` directory
+  if (byYear.size === 0) {
+    try {
+      const dir = path.resolve(process.cwd(), "expense-files");
+      const files = await fs.readdir(dir);
+      for (const file of files) {
+        const lower = file.toLowerCase();
+        if (!lower.endsWith(".pdf") && !lower.endsWith(".xlsx")) continue;
+        const ym = file.match(/\b(20\d{2})\b/);
+        if (!ym) continue;
+        const y = Number(ym[1]);
+        if (byYear.has(y)) continue;
+
+        const buf = await fs.readFile(path.join(dir, file));
+        const parsed = parseBudgetFile(buf, file);
+        if (!parsed) continue;
+
+        byYear.set(y, {
+          year: y,
+          donors: parsed.donors,
+          expenses: parsed.expenses,
+          totalIncome: parsed.totalIncome,
+          totalExpense: parsed.totalExpense,
+          balance: parsed.balance,
+          pdfUrl: `/api/expense-files/file/${encodeURIComponent(file)}`,
+        });
+      }
+    } catch (e) {
+      console.warn("Fallback disk read of expense-files failed:", e);
+    }
   }
 
   const years = [...byYear.values()].sort((a, b) => b.year - a.year);
