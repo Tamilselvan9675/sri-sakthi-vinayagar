@@ -7,32 +7,53 @@ import { MotionButton } from "@/components/home/motion-button";
 
 interface FeedbackFormProps {
   messages: Record<string, string>;
+  locale?: string;
 }
 
-export function FeedbackForm({ messages: t }: FeedbackFormProps) {
+export function FeedbackForm({ messages: t, locale = "en" }: FeedbackFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [error, setError] = useState("");
   
   // Star rating state
   const [rating, setRating] = useState<number>(0);
   const [hoverRating, setHoverRating] = useState<number>(0);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const form = e.currentTarget;
+    const data = new FormData(form);
     setIsSubmitting(true);
-    
-    // Simulate a network request for a premium feel
-    setTimeout(() => {
-      setIsSubmitting(false);
+    setError("");
+
+    try {
+      const response = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: data.get("name"),
+          email: data.get("email"),
+          phone: data.get("phone"),
+          message: data.get("message"),
+          website: data.get("website"),
+          rating: rating || undefined,
+          locale,
+        }),
+      });
+      if (!response.ok) throw new Error("Request failed");
+
       setIsSuccess(true);
-      
       // Reset after 5 seconds
       setTimeout(() => {
         setIsSuccess(false);
         setRating(0);
-        (e.target as HTMLFormElement).reset();
+        form.reset();
       }, 5000);
-    }, 1500);
+    } catch {
+      setError(t.error || "Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -89,7 +110,7 @@ export function FeedbackForm({ messages: t }: FeedbackFormProps) {
                   </label>
                   <input 
                     type="text" 
-                    id="name" 
+                    id="name" name="name" 
                     required
                     minLength={3}
                     placeholder={t.namePlaceholder}
@@ -105,7 +126,7 @@ export function FeedbackForm({ messages: t }: FeedbackFormProps) {
                   </label>
                   <input 
                     type="email" 
-                    id="email" 
+                    id="email" name="email" 
                     required
                     placeholder={t.emailPlaceholder}
                     className="w-full bg-muted/20 border-b-2 border-transparent rounded-t-xl px-4 py-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:bg-primary/5 transition-all group-hover:bg-muted/40 shadow-inner"
@@ -121,7 +142,7 @@ export function FeedbackForm({ messages: t }: FeedbackFormProps) {
                 </label>
                 <input 
                   type="tel" 
-                  id="phone" 
+                  id="phone" name="phone" 
                   required
                   pattern="[0-9]{10}"
                   title="Please enter exactly 10 digits"
@@ -164,7 +185,7 @@ export function FeedbackForm({ messages: t }: FeedbackFormProps) {
                   {t.message} <span className="text-destructive">*</span>
                 </label>
                 <textarea 
-                  id="message" 
+                  id="message" name="message" 
                   required
                   minLength={10}
                   rows={4}
@@ -172,6 +193,13 @@ export function FeedbackForm({ messages: t }: FeedbackFormProps) {
                   className="w-full bg-muted/20 border-b-2 border-transparent rounded-t-xl px-4 py-4 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary focus:bg-primary/5 transition-all resize-none group-hover:bg-muted/40 shadow-inner"
                 />
               </div>
+
+              {/* Honeypot (hidden from visitors; bots fill it) */}
+              <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="hidden" />
+
+              {error && (
+                <p role="alert" className="text-sm text-destructive">{error}</p>
+              )}
 
               {/* Submit */}
               <div className="pt-6">
@@ -204,3 +232,4 @@ export function FeedbackForm({ messages: t }: FeedbackFormProps) {
     </motion.div>
   );
 }
+

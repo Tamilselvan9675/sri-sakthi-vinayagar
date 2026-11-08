@@ -37,7 +37,7 @@ export function ContactContent({ locale, messages, settings }: ContactContentPro
   const cleanWaDigits = rawWa.replace(/\D/g, "");
   const waNumber = cleanWaDigits.startsWith("91") && cleanWaDigits.length > 10 ? cleanWaDigits : `91${cleanWaDigits.replace(/^0+/, "")}`;
   const whatsappDisplay = settings?.whatsapp || TEMPLE_CONTACT.phone;
-  const email = settings?.email || "info@sakthivinayagar.org";
+  const email = TEMPLE_CONTACT.email;
   const addressEn = settings?.addressEn || "Sri Sakthi Vinayagar Temple, Kulakarai Street, Kadambadi Post, Mamallapuram, Chengalpattu - 603104";
   const addressTa = settings?.addressTa || addressEn;
   const instagram = SOCIAL_LINKS.instagram;
@@ -196,7 +196,7 @@ export function ContactContent({ locale, messages, settings }: ContactContentPro
       </motion.div>
 
       {/* FEEDBACK FORM SECTION */}
-      <FeedbackForm messages={messages.feedback} />
+      <FeedbackForm messages={messages.feedback} locale={locale} />
 
       {/* CTA SECTION */}
       <motion.div
@@ -232,3 +232,4 @@ export function ContactContent({ locale, messages, settings }: ContactContentPro
     </div>
   );
 }
+

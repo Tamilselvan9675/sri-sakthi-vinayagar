@@ -82,9 +82,6 @@ await make("winners", { festivalYear: y2099, winnerName: "Dummy Winner", photo: 
 // Videos
 await make("videos", { festivalYear: y2099, title: `${D}Festival Highlights`, youtubeUrl: "https://www.youtube.com/watch?v=aqz-KE-bpKQ", category: "festival", _status: "published" }, { title: `${DT}திருவிழா சிறப்பம்சங்கள்` });
 
-// Finance
-await make("donors", { festivalYear: y2099, donorName: `${D}Test Donor`, amount: 1001, description: "Dummy donation" }, { description: "டம்மி நன்கொடை" });
-await make("expenses", { festivalYear: y2099, category: `${D}Decoration`, amount: 2500, date: "2099-09-04T00:00:00.000Z", description: "Dummy expense", responsiblePerson: "Test Person", type: "cash" }, { category: `${DT}அலங்காரம்`, description: "டம்மி செலவு" });
 
 // Settings: only if none exist
 if ((await payload.count({ collection: "temple-settings" })).totalDocs === 0) {

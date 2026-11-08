@@ -8,6 +8,7 @@ import { Messages } from "@/i18n/get-messages";
 import { LanguageSwitcher } from "./language-switcher";
 import {
   MapPin,
+  Mail,
   Phone,
   Heart,
 } from "lucide-react";
@@ -289,6 +290,13 @@ export function Footer({ locale, messages }: FooterProps) {
                 aria-label={messages.common.phone}
               >
                 <Phone className="h-4 w-4" />
+              </a>
+              <a
+                href={`mailto:${TEMPLE_CONTACT.email}`}
+                className="flex h-10 w-10 items-center justify-center rounded-xl text-white/60 hover:text-temple-gold hover:bg-white/10 transition-all duration-200"
+                aria-label={messages.feedback.email}
+              >
+                <Mail className="h-4 w-4" />
               </a>
               <a
                 href={`https://wa.me/${whatsapp}`}

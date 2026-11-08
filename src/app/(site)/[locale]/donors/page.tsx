@@ -1,6 +1,8 @@
 import { DonorContent } from "./donor-content";
 import { getCmsFinance } from "@/lib/cms/content";
 
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }) {
   const { locale } = await props.params;
   
@@ -19,6 +21,7 @@ export default async function DonorsPage(props: { params: Promise<{ locale: stri
         locale={locale}
         donors={finance?.donors}
         year={finance?.year}
+        years={finance?.years}
       />
     </main>
   );

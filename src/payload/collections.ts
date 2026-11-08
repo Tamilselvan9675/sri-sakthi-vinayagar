@@ -1,4 +1,4 @@
-import type { CollectionConfig, Field } from "payload";
+import { APIError, type CollectionBeforeChangeHook, type CollectionBeforeValidateHook, type CollectionConfig, type Field } from "payload";
 import {
   canEditContent,
   canManageFinance,
@@ -11,6 +11,21 @@ import {
   adminOnlyField,
 } from "./access/index.ts";
 import { auditAfterChange, auditAfterDelete } from "./hooks/audit.ts";
+import { resolveStorageFolder } from "../lib/storage/folders.ts";
+import { sendContactReply } from "../lib/email/contact-mail.ts";
+
+/**
+ * Routes every new upload to its R2 folder (stored in the adapter's `prefix`
+ * field). Existing documents keep their stored prefix on metadata-only edits.
+ */
+const setStorageFolder =
+  (slug: string): CollectionBeforeValidateHook =>
+  ({ data, req }) => {
+    if (req.file && data) {
+      data.prefix = resolveStorageFolder(slug, req.file.mimetype);
+    }
+    return data;
+  };
 
 /* -------------------------------------------------------------------------- */
 /* Shared helpers                                                             */
@@ -128,13 +143,25 @@ export const Media: CollectionConfig = {
     // With R2 enabled the storage adapter keeps binaries in the bucket.
     staticDir: "media",
     // Explicit allow-list (no SVG: it can carry scripts).
-    mimeTypes: ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif", "application/pdf"],
+    // Images are stored in media/gallery, videos in media/videos. PDFs belong
+    // to the Finance collections (financial-reports) and are not accepted here.
+    mimeTypes: [
+      "image/jpeg",
+      "image/png",
+      "image/webp",
+      "image/gif",
+      "image/avif",
+      "video/mp4",
+      "video/webm",
+      "video/quicktime",
+    ],
     imageSizes: [
       { name: "thumbnail", width: 400, height: 300, position: "centre" },
       { name: "card", width: 800, height: 600, position: "centre" },
     ],
     adminThumbnail: "thumbnail",
   },
+  hooks: { beforeValidate: [setStorageFolder("media")] },
   fields: [
     { name: "alt", type: "text", required: true, localized: true },
     { name: "caption", type: "text", localized: true },
@@ -435,53 +462,176 @@ export const Videos: CollectionConfig = {
 /* -------------------------------------------------------------------------- */
 
 const financeAccess = {
-  read: canManageFinance,
+  read: () => true,
   create: canManageFinance,
   update: canManageFinance,
   delete: isAdmin,
 };
 
-export const Donors: CollectionConfig = {
-  slug: "donors",
-  admin: { group: "Finance", useAsTitle: "donorName", defaultColumns: ["donorName", "amount", "festivalYear"] },
-  access: financeAccess,
-  hooks: { afterChange: [auditAfterChange], afterDelete: [auditAfterDelete] },
-  fields: [
-    yearField,
-    legacyIdField,
-    { name: "donorName", type: "text", required: true },
-    { name: "amount", type: "number", required: true, min: 0 },
-    { name: "description", type: "textarea", localized: true },
-  ],
-};
+/**
+ * Finance: year-wise file uploads only. Files are stored exactly as uploaded
+ * (no parsing, generation or rewriting) and only .pdf / .xlsx are accepted.
+ */
+const FINANCE_MIME_TYPES = [
+  "application/pdf",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+];
 
-export const Expenses: CollectionConfig = {
-  slug: "expenses",
-  admin: { group: "Finance", useAsTitle: "description", defaultColumns: ["description", "category", "amount", "date", "festivalYear"] },
+const financeFileCollection = (
+  slug: string,
+  singular: string,
+  plural: string,
+  hidden = false,
+): CollectionConfig => ({
+  slug,
+  labels: { singular, plural },
+  admin: {
+    group: "Finance",
+    useAsTitle: "filename",
+    defaultColumns: ["festivalYear", "filename", "updatedAt"],
+    description: "Upload the yearly Donors and Expenses file (PDF or Excel .xlsx).",
+    hidden,
+  },
   access: financeAccess,
-  hooks: { afterChange: [auditAfterChange], afterDelete: [auditAfterDelete] },
-  defaultSort: "-date",
+  upload: {
+    staticDir: slug,
+    mimeTypes: FINANCE_MIME_TYPES,
+    // Keep the original bytes: no resizing, cropping or other processing.
+    crop: false,
+    focalPoint: false,
+  },
+  hooks: {
+    beforeValidate: [
+      setStorageFolder(slug),
+      ({ req, data }) => {
+        const name = req.file?.name?.toLowerCase();
+        if (name && !name.endsWith(".pdf") && !name.endsWith(".xlsx")) {
+          throw new APIError("Only .pdf and .xlsx files are allowed.", 400, undefined, true);
+        }
+        return data;
+      },
+    ],
+    afterChange: [auditAfterChange],
+    afterDelete: [auditAfterDelete],
+  },
   fields: [
-    yearField,
-    legacyIdField,
-    { name: "category", type: "text", required: true, localized: true, admin: { description: "e.g. Decoration, Food, Prizes, Sound" } },
-    { name: "amount", type: "number", required: true, min: 0 },
-    { name: "date", type: "date", required: true, admin: { date: { pickerAppearance: "dayOnly" } } },
-    { name: "description", type: "textarea", required: true, localized: true },
+    { ...yearField, unique: true, admin: { description: "One file per year." } },
+    // Bookkeeping columns used by the R2 (S3) storage adapter.
+    { name: "prefix", type: "text", admin: { hidden: true, readOnly: true, disableListColumn: true, disableListFilter: true, disableBulkEdit: true } },
+    { name: "_objectKey", type: "text", admin: { hidden: true, readOnly: true, disableListColumn: true, disableListFilter: true, disableBulkEdit: true } },
+  ],
+});
+
+export const Donors = financeFileCollection("donor-files", "Donors", "Donors", true);
+export const Expenses = financeFileCollection(
+  "expense-files",
+  "Donors and Expenses",
+  "Donors and Expenses",
+);
+/* -------------------------------------------------------------------------- */
+/* Contact messages (submitted from the public Contact page)                  */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Sends the admin's reply through Resend when "send" is ticked. Throws on
+ * failure so the admin sees the error and nothing is marked as sent.
+ */
+const sendAdminReply: CollectionBeforeChangeHook = async ({ data, originalDoc, operation, req }) => {
+  if (operation !== "update" || !data?.sendReply) return data;
+
+  const reply = String(data.replyMessage ?? originalDoc?.replyMessage ?? "").trim();
+  if (!reply) throw new APIError("Write a reply message before sending.", 400, undefined, true);
+  if (!originalDoc?.email) throw new APIError("This message has no visitor email.", 400, undefined, true);
+
+  try {
+    await sendContactReply({
+      to: originalDoc.email,
+      visitorName: originalDoc.name,
+      subject:
+        String(data.replySubject ?? originalDoc.replySubject ?? "").trim() ||
+        "Re: your message to Sri Sakthi Vinayagar Temple",
+      reply,
+      originalMessage: originalDoc.message,
+    });
+  } catch (error) {
+    throw new APIError(
+      `Reply not sent: ${error instanceof Error ? error.message : "unknown error"}`,
+      502,
+      undefined,
+      true,
+    );
+  }
+
+  data.sendReply = false;
+  data.repliedAt = new Date().toISOString();
+  data.repliedBy = req.user?.email ?? null;
+  return data;
+};
+// Visitor data and delivery status are never editable, not even by admins (API included).
+const readOnlyField = { admin: { readOnly: true }, access: { update: () => false } } as const;
+
+export const ContactMessages: CollectionConfig = {
+  slug: "contact-messages",
+  labels: { singular: "Contact Message", plural: "Contact Messages" },
+  admin: {
+    group: "System",
+    useAsTitle: "name",
+    defaultColumns: ["createdAt", "name", "email", "phone", "rating", "repliedAt"],
+    description: "Messages sent from the website contact form. Use the Reply section to email the visitor.",
+  },
+  defaultSort: "-createdAt",
+  hooks: {
+    beforeChange: [sendAdminReply],
+  },
+  access: {
+    // Created only by the /api/contact route through the Local API (overrideAccess).
+    // Update is admin-only and limited (via field access) to the reply fields below.
+    create: () => false,
+    update: ({ req }) => isAdminUser(req.user),
+    read: ({ req }) => isAdminUser(req.user),
+    delete: isAdmin,
+  },
+  fields: [
+    { name: "name", type: "text", required: true, ...readOnlyField },
+    { name: "email", type: "email", required: true, ...readOnlyField },
+    { name: "phone", type: "text", required: true, ...readOnlyField },
+    { name: "rating", type: "number", min: 1, max: 5, ...readOnlyField },
+    { name: "message", type: "textarea", required: true, ...readOnlyField },
+    { name: "visitorLocale", label: "Language", type: "text", ...readOnlyField },
+    { name: "confirmationSent", label: "Confirmation email sent", type: "checkbox", defaultValue: false, ...readOnlyField },
+    { name: "notificationSent", label: "Temple notification sent", type: "checkbox", defaultValue: false, ...readOnlyField },
+    { name: "emailError", label: "Email error", type: "text", ...readOnlyField },
     {
-      name: "responsiblePerson",
-      type: "text",
-      access: { read: ({ req }) => isAdminUser(req.user) || req.user?.role === "finance_manager" },
-    },
-    {
-      name: "type",
-      label: "Type",
-      type: "select",
-      required: true,
-      defaultValue: "cash",
-      options: [
-        { label: "Cash", value: "cash" },
-        { label: "In-kind", value: "in-kind" },
+      type: "collapsible",
+      label: "Reply / Feedback to Visitor",
+      admin: { initCollapsed: false },
+      fields: [
+        {
+          name: "replySubject",
+          label: "Subject",
+          type: "text",
+          admin: { description: "Defaults to: Re: your message to Sri Sakthi Vinayagar Temple" },
+        },
+        {
+          name: "replyMessage",
+          label: "Reply / Feedback Message",
+          type: "textarea",
+        },
+        {
+          name: "sendReply",
+          label: "Send this reply by email when I save",
+          type: "checkbox",
+          defaultValue: false,
+          admin: { description: "Sends the custom feedback email to the visitor's submitted email address via Resend. Resets after sending." },
+        },
+        {
+          name: "repliedAt",
+          label: "Last replied at",
+          type: "date",
+          admin: { readOnly: true, date: { pickerAppearance: "dayAndTime" } },
+          access: { update: () => false },
+        },
+        { name: "repliedBy", label: "Last replied by", type: "text", ...readOnlyField },
       ],
     },
   ],
@@ -513,3 +663,4 @@ export const AuditLogs: CollectionConfig = {
     { name: "newValue", type: "json", access: { read: adminOnlyField } },
   ],
 };
+

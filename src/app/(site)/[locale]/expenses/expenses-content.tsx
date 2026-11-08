@@ -3,10 +3,9 @@ import { GlassSelect } from "@/components/ui/glass-select";
 
 import { useState, useEffect, useRef } from "react";
 import { motion, useInView, animate } from "motion/react";
-import { TrendingDown, TrendingUp, Wallet, FileSpreadsheet, Calendar, FileText, CheckCircle2, HeartHandshake, Search } from "lucide-react";
+import { TrendingDown, TrendingUp, Wallet, FileSpreadsheet, Calendar, FileText, CheckCircle2, HeartHandshake, Search, ChevronDown, ZoomIn, ZoomOut } from "lucide-react";
 
-import { EXPENSES_2025, type ExpenseRecord } from "./expense-data";
-import { DONORS_2025, type DonorRecord } from "./donor-data";
+import type { CmsDonorRow as DonorRecord, CmsExpenseRow as ExpenseRecord, CmsFinanceYear } from "@/lib/cms/content";
 import { Input } from "@/components/ui/input";
 
 interface ExpensesContentProps {
@@ -14,6 +13,7 @@ interface ExpensesContentProps {
   donors?: DonorRecord[];
   expenses?: ExpenseRecord[];
   year?: number;
+  years?: CmsFinanceYear[];
 }
 
 function Counter({ value, isCurrency = true, isTa = false }: { value: number; isCurrency?: boolean; isTa?: boolean }) {
@@ -46,15 +46,53 @@ function Counter({ value, isCurrency = true, isTa = false }: { value: number; is
   return <span ref={ref} className="tabular-nums font-sans tracking-tight">0</span>;
 }
 
-export function ExpensesContent({ locale, donors, expenses, year }: ExpensesContentProps) {
-  const currentExpenses = expenses ?? EXPENSES_2025;
-  const currentDonors = donors ?? DONORS_2025;
-  const currentYearStr = String(year ?? 2025);
+export function ExpensesContent({ locale, donors, expenses, year, years }: ExpensesContentProps) {
+  const yearlyRecords: CmsFinanceYear[] =
+    years && years.length > 0
+      ? years
+      : donors && expenses && year
+        ? [
+            {
+              year,
+              donors,
+              expenses,
+              totalIncome: donors.reduce((acc, d) => acc + (d.amount || 0), 0),
+              totalExpense: expenses.reduce((acc, e) => acc + (e.amount || 0), 0),
+              balance:
+                donors.reduce((acc, d) => acc + (d.amount || 0), 0) -
+                expenses.reduce((acc, e) => acc + (e.amount || 0), 0),
+              pdfUrl: "#",
+            },
+          ]
+        : [];
 
-  const [selectedYear, setSelectedYear] = useState(currentYearStr);
+  const defaultYearStr = yearlyRecords[0] ? String(yearlyRecords[0].year) : "";
+
+  const [selectedYear, setSelectedYear] = useState(defaultYearStr);
   const [donorSearchQuery, setDonorSearchQuery] = useState("");
   const [expenseSearchQuery, setExpenseSearchQuery] = useState("");
+  const [donorZoom, setDonorZoom] = useState(1);
+  const [expenseZoom, setExpenseZoom] = useState(1);
+  const MIN_ZOOM = 0.2;
+  const MAX_ZOOM = 1.5;
+  const ZOOM_STEP = 0.1;
   const isTa = locale === "ta";
+
+  const activeRecord =
+    yearlyRecords.find((r) => String(r.year) === selectedYear) ?? yearlyRecords[0];
+  const currentExpenses = activeRecord?.expenses ?? [];
+  const currentDonors = activeRecord?.donors ?? [];
+  const activeYearLabel = activeRecord ? String(activeRecord.year) : "";
+  const hasRecords = yearlyRecords.length > 0;
+  const hasDownloadUrl = Boolean(activeRecord?.pdfUrl && activeRecord.pdfUrl !== "#");
+
+  useEffect(() => {
+    if (yearlyRecords.length > 0 && !yearlyRecords.some((r) => String(r.year) === selectedYear)) {
+      setSelectedYear(String(yearlyRecords[0].year));
+    } else if (yearlyRecords.length === 0 && selectedYear !== "") {
+      setSelectedYear("");
+    }
+  }, [yearlyRecords, selectedYear]);
 
   // Force scroll to top on mount
   useEffect(() => {
@@ -64,7 +102,14 @@ export function ExpensesContent({ locale, donors, expenses, year }: ExpensesCont
   const t = {
     title: isTa ? "கோவில் நிதி அறிக்கை" : "Temple Financial Report",
     subtitle: isTa ? "எங்கள் சமூகத்திற்கு வெளிப்படையான நிதி அறிக்கைகள்" : "Clear and transparent financial reports for our community",
-    downloadPdf: isTa ? "2025 வரவு செலவு அறிக்கை பதிவிறக்கம்" : "Download Original 2025 Budget",
+    noYearOption: isTa ? "நிதி அறிக்கை இல்லை" : "No Financial Year",
+    downloadPdf: activeYearLabel
+      ? isTa
+        ? `${activeYearLabel} வரவு செலவு அறிக்கை பதிவிறக்கம்`
+        : `Download Original ${activeYearLabel} Budget`
+      : isTa
+        ? "வரவு செலவு அறிக்கை பதிவிறக்கம்"
+        : "Download Original Budget",
     income: isTa ? "மொத்த வருமானம்" : "Total Income",
     expense: isTa ? "மொத்த செலவுகள்" : "Total Expenses",
     balance: isTa ? "மீதமுள்ள இருப்பு" : "Remaining Balance",
@@ -78,10 +123,27 @@ export function ExpensesContent({ locale, donors, expenses, year }: ExpensesCont
     searchDonor: isTa ? "நன்கொடையாளரைத் தேடுங்கள்..." : "Search donors...",
     searchExpense: isTa ? "செலவைத் தேடுங்கள்..." : "Search expenses...",
     noResults: isTa ? "எந்த முடிவும் காணப்படவில்லை." : "No results found matching your search.",
-    lastUpdated: isTa ? "கடைசியாக புதுப்பிக்கப்பட்டது: 18 செப்டம்பர் 2026" : "Last updated: 18 September 2026",
-    verified: isTa ? "2025 பட்ஜெட் PDF உடன் சரிபார்க்கப்பட்டது" : "Verified with 2025 Budget PDF",
+    noDonorsTitle: isTa ? "நன்கொடையாளர் விவரங்கள் இன்னும் பதிவேற்றப்படவில்லை" : "No donor records available yet",
+    noDonorsSubtitle: isTa
+      ? "நிதி அறிக்கை பதிவேற்றப்பட்டதும் நன்கொடையாளர் விவரங்கள் இங்கு காண்பிக்கப்படும்."
+      : "Donor details will appear here once a financial report is uploaded.",
+    noExpensesTitle: isTa ? "செலவு விவரங்கள் இன்னும் பதிவேற்றப்படவில்லை" : "No expense records available yet",
+    noExpensesSubtitle: isTa
+      ? "நிதி அறிக்கை பதிவேற்றப்பட்டதும் செலவு விவரங்கள் இங்கு காண்பிக்கப்படும்."
+      : "Expense details will appear here once a financial report is uploaded.",
+    lastUpdated: isTa ? "கடைசியாக புதுப்பிக்கப்பட்டது" : "Verified Financial Report",
+    verified: activeYearLabel
+      ? isTa
+        ? `${activeYearLabel} பட்ஜெட் PDF உடன் சரிபார்க்கப்பட்டது`
+        : `Verified with ${activeYearLabel} Budget PDF`
+      : isTa
+        ? "நிதி அறிக்கை பதிவேற்றப்படவில்லை"
+        : "Awaiting Budget Report Upload",
     totalDonation: isTa ? "மொத்த நன்கொடை" : "TOTAL DONATION",
     totalExpense: isTa ? "மொத்த செலவு" : "TOTAL EXPENSE",
+    zoomIn: isTa ? "பெரிதாக்கு" : "Zoom in",
+    zoomOut: isTa ? "சிறிதாக்கு" : "Zoom out",
+    zoomReset: isTa ? "இயல்பு அளவு (100%)" : "Reset zoom to 100%",
   };
 
   const formatCurrency = (amount: number | null) => {
@@ -108,12 +170,9 @@ export function ExpensesContent({ locale, donors, expenses, year }: ExpensesCont
     return catStr.toLowerCase().includes(query) || detailStr.toLowerCase().includes(query) || respStr.toLowerCase().includes(query);
   });
 
-  const calculatedDonation = currentDonors.reduce((acc, d) => acc + (d.amount || 0), 0);
-  const calculatedExpense = currentExpenses.reduce((acc, e) => acc + (e.amount || 0), 0);
-
-  const totalDonationAmount = donors ? calculatedDonation : 193463;
-  const totalExpenseAmount = expenses ? calculatedExpense : 148941;
-  const balanceAmount = (donors && expenses) ? (totalDonationAmount - totalExpenseAmount) : 52922;
+  const totalDonationAmount = activeRecord?.totalIncome ?? 0;
+  const totalExpenseAmount = activeRecord?.totalExpense ?? 0;
+  const balanceAmount = activeRecord?.balance ?? 0;
 
   const splitDetails = (details: string) => {
     const parts = details.split(' - ');
@@ -129,6 +188,30 @@ export function ExpensesContent({ locale, donors, expenses, year }: ExpensesCont
     };
   };
 
+  const renderDetails = (text: string) => {
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) return "-";
+    return (
+      <div className="space-y-1">
+        {lines.map((line, i) => {
+          if (/^-{3,}/.test(line)) {
+            return <div key={i} className="my-2 border-t border-border/60" />;
+          }
+          const bulletMatch = line.match(/^(?:•|👉|☞|👈|👆|👇)\s*(.*)$/);
+          if (bulletMatch) {
+            return (
+              <div key={i} className="flex items-start gap-2">
+                <span className="mt-[0.58em] h-[0.5em] w-[0.5em] rounded-full bg-temple-gold shrink-0" />
+                <span>{bulletMatch[1]}</span>
+              </div>
+            );
+          }
+          return <div key={i}>{line}</div>;
+        })}
+      </div>
+    );
+  };
+
   return (
     <div className="w-full min-h-screen bg-gradient-to-b from-background via-[#fdfbf7] to-background dark:from-background dark:via-[oklch(0.18_0.02_22)] dark:to-background">
       {/* HERO SECTION */}
@@ -142,15 +225,25 @@ export function ExpensesContent({ locale, donors, expenses, year }: ExpensesCont
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: "easeOut" }}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white/60 dark:bg-black/40 backdrop-blur-md border border-temple-gold/20 shadow-sm mb-8"
+            className="inline-block mb-8"
           >
-            <Calendar className="w-4 h-4 text-temple-gold" />
             <GlassSelect 
               value={selectedYear}
               onChange={(e) => setSelectedYear(e.target.value)}
-              className="bg-transparent border-none text-sm font-semibold text-foreground focus:ring-0 cursor-pointer outline-none"
+              disabled={!hasRecords}
+              startIcon={<Calendar className="w-4 h-4 text-temple-gold shrink-0" />}
+              endIcon={<ChevronDown className="w-4 h-4 text-temple-gold shrink-0" />}
+              className={`inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-white/60 dark:bg-black/40 backdrop-blur-md border border-temple-gold/20 shadow-sm text-sm font-semibold text-foreground hover:border-temple-gold/40 focus:outline-none focus:ring-2 focus:ring-temple-gold/40 transition-all ${hasRecords ? "cursor-pointer" : "cursor-default opacity-80"}`}
             >
-              <option value={currentYearStr}>{currentYearStr} Financial Year</option>
+              {hasRecords ? (
+                yearlyRecords.map((r) => (
+                  <option key={r.year} value={String(r.year)}>
+                    {r.year} Financial Year
+                  </option>
+                ))
+              ) : (
+                <option value="">{t.noYearOption}</option>
+              )}
             </GlassSelect>
           </motion.div>
 
@@ -177,15 +270,28 @@ export function ExpensesContent({ locale, donors, expenses, year }: ExpensesCont
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.3, ease: "easeOut" }}
           >
-            <a href="/Sri_Sakthi_Vinayagar_Budget_2025.pdf" target="_blank" rel="noopener noreferrer">
-              <button className="relative group overflow-hidden rounded-full px-8 py-4 bg-gradient-to-r from-red-900 to-red-950 border border-temple-gold/30 shadow-[0_0_40px_-10px_rgba(212,175,55,0.4)] hover:shadow-[0_0_60px_-15px_rgba(212,175,55,0.6)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300">
-                <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-temple-gold/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
-                <span className="relative flex items-center justify-center text-white font-medium">
-                  <FileSpreadsheet className="w-5 h-5 mr-2 text-temple-gold group-hover:text-white transition-colors" />
-                  {t.downloadPdf}
+            {hasDownloadUrl ? (
+              <a href={activeRecord!.pdfUrl} target="_blank" rel="noopener noreferrer">
+                <button className="relative group overflow-hidden rounded-full px-6 sm:px-8 py-3.5 sm:py-4 max-w-full bg-gradient-to-r from-red-900 to-red-950 border border-temple-gold/30 shadow-[0_0_40px_-10px_rgba(212,175,55,0.4)] hover:shadow-[0_0_60px_-15px_rgba(212,175,55,0.6)] hover:-translate-y-0.5 active:translate-y-0 transition-all duration-300">
+                  <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-temple-gold/20 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]" />
+                  <span className="relative flex items-center justify-center gap-2 text-white font-medium text-sm sm:text-base">
+                    <FileSpreadsheet className="w-5 h-5 shrink-0 text-temple-gold group-hover:text-white transition-colors" />
+                    <span className="text-left leading-snug">{t.downloadPdf}</span>
+                  </span>
+                </button>
+              </a>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="relative overflow-hidden rounded-full px-8 py-4 bg-gradient-to-r from-red-900/70 to-red-950/70 border border-temple-gold/20 shadow-[0_0_40px_-10px_rgba(212,175,55,0.2)] opacity-60 cursor-not-allowed transition-all duration-300"
+              >
+                <span className="relative flex items-center justify-center gap-2 text-white/80 font-medium text-sm sm:text-base">
+                  <FileSpreadsheet className="w-5 h-5 shrink-0 text-temple-gold/70" />
+                  <span className="text-left leading-snug">{t.downloadPdf}</span>
                 </span>
               </button>
-            </a>
+            )}
           </motion.div>
         </div>
       </section>
@@ -276,26 +382,69 @@ export function ExpensesContent({ locale, donors, expenses, year }: ExpensesCont
                 {isTa ? "நன்கொடையாளர் பட்டியல்" : "Temple Donor List"}
               </h2>
             </div>
-            <div className="w-full lg:w-80 relative group">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-green-500/30 to-temple-gold/30 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition duration-500" />
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input 
-                  type="text"
-                  placeholder={t.searchDonor}
-                  value={donorSearchQuery}
-                  onChange={(e) => setDonorSearchQuery(e.target.value)}
-                  className="w-full pl-10 h-11 rounded-xl border-border/60 bg-white/80 dark:bg-black/50 focus-visible:ring-1 focus-visible:ring-green-500/50 text-sm transition-all"
-                />
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+              <div
+                role="group"
+                aria-label={isTa ? "நன்கொடையாளர் பட்டியல் அளவு கட்டுப்பாடு" : "Donor list zoom controls"}
+                className="inline-flex items-center self-start sm:self-auto rounded-xl border border-border/60 bg-white/80 dark:bg-black/50 p-1 shadow-sm"
+              >
+                <button
+                  type="button"
+                  onClick={() => setDonorZoom((z) => Math.max(MIN_ZOOM, Number((z - ZOOM_STEP).toFixed(2))))}
+                  disabled={donorZoom <= MIN_ZOOM}
+                  aria-label={t.zoomOut}
+                  title={t.zoomOut}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-green-500/10 hover:text-green-700 dark:hover:text-green-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-500/50 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                >
+                  <ZoomOut className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDonorZoom(1)}
+                  aria-label={t.zoomReset}
+                  title={t.zoomReset}
+                  className="px-2.5 h-9 text-xs font-semibold tabular-nums text-foreground/80 hover:text-foreground rounded-lg hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-500/50 transition-colors min-w-[3.25rem]"
+                >
+                  {Math.round(donorZoom * 100)}%
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDonorZoom((z) => Math.min(MAX_ZOOM, Number((z + ZOOM_STEP).toFixed(2))))}
+                  disabled={donorZoom >= MAX_ZOOM}
+                  aria-label={t.zoomIn}
+                  title={t.zoomIn}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-green-500/10 hover:text-green-700 dark:hover:text-green-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-500/50 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                >
+                  <ZoomIn className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="w-full sm:w-80 relative group">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-green-500/30 to-temple-gold/30 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition duration-500" />
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <Input 
+                    type="text"
+                    placeholder={t.searchDonor}
+                    value={donorSearchQuery}
+                    onChange={(e) => setDonorSearchQuery(e.target.value)}
+                    className="w-full pl-10 h-11 rounded-xl border-border/60 bg-white/80 dark:bg-black/50 focus-visible:ring-1 focus-visible:ring-green-500/50 text-sm transition-all"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
           {/* Donor Records Table */}
-          <div className="relative overflow-x-auto h-[600px] overflow-y-auto w-full styled-scrollbar">
-            <div className="min-w-[800px] w-full">
+          <div className={`relative overflow-x-auto ${currentDonors.length > 0 ? "h-[600px]" : ""} overflow-y-auto w-full styled-scrollbar`}>
+            <div
+              className="w-full transition-[font-size,min-width] duration-200 ease-out"
+              style={{
+                fontSize: `${donorZoom * 16}px`,
+                minWidth: `${Math.round(800 * donorZoom)}px`,
+              }}
+            >
               {/* Sticky Header */}
-              <div className="grid grid-cols-12 gap-4 px-6 md:px-8 py-4 border-b border-border/50 text-[11px] font-bold text-foreground uppercase tracking-widest sticky top-0 z-30 bg-white/95 dark:bg-[#1a1515]/95 backdrop-blur-md shadow-sm">
+              <div className="grid grid-cols-12 gap-4 px-6 md:px-8 py-[1em] border-b border-border/50 text-[0.6875em] font-bold text-foreground uppercase tracking-widest sticky top-0 z-30 bg-white/95 dark:bg-[#1a1515]/95 backdrop-blur-md shadow-sm">
                 <div className="col-span-1">#</div>
                 <div className="col-span-3">{t.donorName}</div>
                 <div className="col-span-3">{t.street}</div>
@@ -310,23 +459,23 @@ export function ExpensesContent({ locale, donors, expenses, year }: ExpensesCont
                     return (
                       <div 
                         key={donor.id}
-                        className="grid grid-cols-12 gap-4 px-6 md:px-8 py-3 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors group items-center"
+                        className="grid grid-cols-12 gap-4 px-6 md:px-8 py-[0.75em] hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors group items-center"
                       >
-                        <div className="col-span-1 text-[11px] font-medium text-muted-foreground">
+                        <div className="col-span-1 text-[0.6875em] font-medium text-muted-foreground">
                           {String(donor.id).padStart(2, '0')}
                         </div>
-                        <div className="col-span-3 text-[13px] font-semibold text-foreground/90 leading-snug">
+                        <div className="col-span-3 text-[0.8125em] font-semibold text-foreground/90 leading-snug">
                           {isTa ? donor.donorNameTa : donor.donorNameEn}
                         </div>
-                        <div className="col-span-3 text-[12px] text-muted-foreground whitespace-pre-wrap leading-relaxed">
+                        <div className="col-span-3 text-[0.75em] text-muted-foreground whitespace-pre-wrap leading-relaxed">
                           {parsedDetails.street}
                         </div>
-                        <div className="col-span-3 text-[12px] text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                          {parsedDetails.desc}
+                        <div className="col-span-3 text-[0.75em] text-muted-foreground leading-relaxed">
+                          {renderDetails(parsedDetails.desc)}
                         </div>
-                        <div className="col-span-2 text-right text-[13px] tabular-nums font-sans font-semibold text-foreground flex items-center justify-end">
+                        <div className="col-span-2 text-right text-[0.8125em] tabular-nums font-sans font-semibold text-foreground flex items-center justify-end">
                           {donor.amount === null ? (
-                            <span className="inline-block px-2.5 py-0.5 bg-green-500/10 text-green-700 dark:text-green-400 text-[10px] uppercase tracking-wider font-bold rounded-full border border-green-500/20">
+                            <span className="inline-block px-2.5 py-0.5 bg-green-500/10 text-green-700 dark:text-green-400 text-[0.625em] uppercase tracking-wider font-bold rounded-full border border-green-500/20">
                               {t.inKind}
                             </span>
                           ) : (
@@ -336,6 +485,14 @@ export function ExpensesContent({ locale, donors, expenses, year }: ExpensesCont
                       </div>
                     );
                   })
+                ) : currentDonors.length === 0 ? (
+                  <div className="py-20 px-6 text-center text-muted-foreground flex flex-col items-center">
+                    <div className="w-16 h-16 rounded-2xl bg-green-500/10 border border-green-500/20 flex items-center justify-center text-green-600 dark:text-green-400 mb-4">
+                      <HeartHandshake className="w-8 h-8" />
+                    </div>
+                    <p className="text-base font-semibold text-foreground mb-1">{t.noDonorsTitle}</p>
+                    <p className="text-sm text-muted-foreground max-w-md">{t.noDonorsSubtitle}</p>
+                  </div>
                 ) : (
                   <div className="py-16 text-center text-muted-foreground flex flex-col items-center">
                     <Search className="w-12 h-12 mb-4 opacity-20" />
@@ -347,11 +504,11 @@ export function ExpensesContent({ locale, donors, expenses, year }: ExpensesCont
           </div>
           
           {/* DONOR TOTAL FOOTER */}
-          <div className="border-t border-green-500/30 bg-gradient-to-r from-green-500/10 via-green-500/20 to-green-600/5 p-6 md:p-8 flex justify-between items-center relative overflow-hidden">
+          <div className="border-t border-green-500/30 bg-gradient-to-r from-green-500/10 via-green-500/20 to-green-600/5 flex justify-between items-center gap-[1em] relative overflow-hidden transition-[font-size,padding] duration-200 ease-out" style={{ fontSize: `${donorZoom * 16}px`, padding: "1.5em" }}>
              <div className="absolute inset-0 bg-[url('/images/temple-pattern.svg')] opacity-[0.05] bg-repeat mix-blend-overlay" />
              <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-green-500/20 via-green-400/5 to-transparent" />
-             <span className="text-sm font-bold text-green-700 dark:text-green-400 tracking-widest relative z-10">{t.totalDonation}</span>
-             <span className="text-3xl tabular-nums font-sans font-bold text-foreground z-10">{formatCurrency(totalDonationAmount)}</span>
+             <span style={{ fontSize: `${donorZoom * 14}px` }} className="font-bold text-green-700 dark:text-green-400 tracking-widest relative z-10 transition-[font-size] duration-200">{t.totalDonation}</span>
+             <span style={{ fontSize: `${donorZoom * 30}px` }} className="leading-tight tabular-nums font-sans font-bold text-foreground z-10 transition-[font-size] duration-200">{formatCurrency(totalDonationAmount)}</span>
           </div>
         </motion.div>
       </section>
@@ -383,26 +540,69 @@ export function ExpensesContent({ locale, donors, expenses, year }: ExpensesCont
                 {isTa ? "முழுமையான செலவுப் பட்டியல்" : "Complete Expense List"}
               </h2>
             </div>
-            <div className="w-full lg:w-80 relative group">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-red-500/30 to-temple-gold/30 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition duration-500" />
-              <div className="relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input 
-                  type="text"
-                  placeholder={t.searchExpense}
-                  value={expenseSearchQuery}
-                  onChange={(e) => setExpenseSearchQuery(e.target.value)}
-                  className="w-full pl-10 h-11 rounded-xl border-border/60 bg-white/80 dark:bg-black/50 focus-visible:ring-1 focus-visible:ring-red-500/50 text-sm transition-all"
-                />
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full lg:w-auto">
+              <div
+                role="group"
+                aria-label={isTa ? "செலவுப் பட்டியல் அளவு கட்டுப்பாடு" : "Expense list zoom controls"}
+                className="inline-flex items-center self-start sm:self-auto rounded-xl border border-border/60 bg-white/80 dark:bg-black/50 p-1 shadow-sm"
+              >
+                <button
+                  type="button"
+                  onClick={() => setExpenseZoom((z) => Math.max(MIN_ZOOM, Number((z - ZOOM_STEP).toFixed(2))))}
+                  disabled={expenseZoom <= MIN_ZOOM}
+                  aria-label={t.zoomOut}
+                  title={t.zoomOut}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-red-500/10 hover:text-red-700 dark:hover:text-red-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500/50 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                >
+                  <ZoomOut className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setExpenseZoom(1)}
+                  aria-label={t.zoomReset}
+                  title={t.zoomReset}
+                  className="px-2.5 h-9 text-xs font-semibold tabular-nums text-foreground/80 hover:text-foreground rounded-lg hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500/50 transition-colors min-w-[3.25rem]"
+                >
+                  {Math.round(expenseZoom * 100)}%
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setExpenseZoom((z) => Math.min(MAX_ZOOM, Number((z + ZOOM_STEP).toFixed(2))))}
+                  disabled={expenseZoom >= MAX_ZOOM}
+                  aria-label={t.zoomIn}
+                  title={t.zoomIn}
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-red-500/10 hover:text-red-700 dark:hover:text-red-400 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-red-500/50 disabled:opacity-40 disabled:pointer-events-none transition-colors"
+                >
+                  <ZoomIn className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="w-full sm:w-80 relative group">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-red-500/30 to-temple-gold/30 rounded-xl blur opacity-0 group-focus-within:opacity-100 transition duration-500" />
+                <div className="relative">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                  <Input 
+                    type="text"
+                    placeholder={t.searchExpense}
+                    value={expenseSearchQuery}
+                    onChange={(e) => setExpenseSearchQuery(e.target.value)}
+                    className="w-full pl-10 h-11 rounded-xl border-border/60 bg-white/80 dark:bg-black/50 focus-visible:ring-1 focus-visible:ring-red-500/50 text-sm transition-all"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
           {/* Expense Records Table */}
-          <div className="relative overflow-x-auto h-[600px] overflow-y-auto w-full styled-scrollbar">
-            <div className="min-w-[900px] w-full">
+          <div className={`relative overflow-x-auto ${currentExpenses.length > 0 ? "h-[600px]" : ""} overflow-y-auto w-full styled-scrollbar`}>
+            <div
+              className="w-full transition-[font-size,min-width] duration-200 ease-out"
+              style={{
+                fontSize: `${expenseZoom * 16}px`,
+                minWidth: `${Math.round(900 * expenseZoom)}px`,
+              }}
+            >
               {/* Sticky Header */}
-              <div className="grid grid-cols-12 gap-4 px-6 md:px-8 py-4 border-b border-border/50 text-[11px] font-bold text-foreground uppercase tracking-widest sticky top-0 z-30 bg-white/95 dark:bg-[#1a1515]/95 backdrop-blur-md shadow-sm">
+              <div className="grid grid-cols-12 gap-4 px-6 md:px-8 py-[1em] border-b border-border/50 text-[0.6875em] font-bold text-foreground uppercase tracking-widest sticky top-0 z-30 bg-white/95 dark:bg-[#1a1515]/95 backdrop-blur-md shadow-sm">
                 <div className="col-span-3">{t.category}</div>
                 <div className="col-span-5">{t.details}</div>
                 <div className="col-span-2">{t.responsible}</div>
@@ -414,20 +614,20 @@ export function ExpensesContent({ locale, donors, expenses, year }: ExpensesCont
                   filteredExpenses.map((expense) => (
                     <div 
                       key={expense.id}
-                      className="grid grid-cols-12 gap-4 px-6 md:px-8 py-3 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors group items-start"
+                      className="grid grid-cols-12 gap-4 px-6 md:px-8 py-[0.75em] hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors group items-start"
                     >
-                      <div className="col-span-3 text-[13px] font-semibold text-foreground/90 pt-0.5 leading-snug">
+                      <div className="col-span-3 text-[0.8125em] font-semibold text-foreground/90 pt-0.5 leading-snug">
                         {isTa ? expense.categoryTa : expense.categoryEn}
                       </div>
-                      <div className="col-span-5 text-[12px] text-muted-foreground whitespace-pre-wrap leading-relaxed">
-                        {isTa ? expense.detailsTa : expense.detailsEn}
+                      <div className="col-span-5 text-[0.75em] text-muted-foreground leading-relaxed">
+                        {renderDetails(isTa ? expense.detailsTa : expense.detailsEn)}
                       </div>
-                      <div className="col-span-2 text-[12px] text-foreground/70 pt-0.5">
+                      <div className="col-span-2 text-[0.75em] text-foreground/70 pt-0.5">
                         {isTa ? expense.responsibleTa : expense.responsibleEn}
                       </div>
-                      <div className="col-span-2 text-[13px] text-right tabular-nums font-sans font-semibold text-foreground flex items-center justify-end pt-0.5">
+                      <div className="col-span-2 text-[0.8125em] text-right tabular-nums font-sans font-semibold text-foreground flex items-center justify-end pt-0.5">
                         {expense.amount === null ? (
-                          <span className="inline-block px-2.5 py-0.5 bg-red-500/10 text-red-700 dark:text-red-400 text-[10px] uppercase tracking-wider font-bold rounded-full border border-red-500/20">
+                          <span className="inline-block px-2.5 py-0.5 bg-red-500/10 text-red-700 dark:text-red-400 text-[0.625em] uppercase tracking-wider font-bold rounded-full border border-red-500/20">
                             {t.inKind}
                           </span>
                         ) : (
@@ -436,6 +636,14 @@ export function ExpensesContent({ locale, donors, expenses, year }: ExpensesCont
                       </div>
                     </div>
                   ))
+                ) : currentExpenses.length === 0 ? (
+                  <div className="py-20 px-6 text-center text-muted-foreground flex flex-col items-center">
+                    <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-600 dark:text-red-400 mb-4">
+                      <FileText className="w-8 h-8" />
+                    </div>
+                    <p className="text-base font-semibold text-foreground mb-1">{t.noExpensesTitle}</p>
+                    <p className="text-sm text-muted-foreground max-w-md">{t.noExpensesSubtitle}</p>
+                  </div>
                 ) : (
                   <div className="py-16 text-center text-muted-foreground flex flex-col items-center">
                     <Search className="w-12 h-12 mb-4 opacity-20" />
@@ -447,11 +655,11 @@ export function ExpensesContent({ locale, donors, expenses, year }: ExpensesCont
           </div>
           
           {/* EXPENSE TOTAL FOOTER */}
-          <div className="border-t border-red-500/30 bg-gradient-to-r from-red-500/10 via-red-500/20 to-red-600/5 p-6 md:p-8 flex justify-between items-center relative overflow-hidden">
+          <div className="border-t border-red-500/30 bg-gradient-to-r from-red-500/10 via-red-500/20 to-red-600/5 flex justify-between items-center gap-[1em] relative overflow-hidden transition-[font-size,padding] duration-200 ease-out" style={{ fontSize: `${expenseZoom * 16}px`, padding: "1.5em" }}>
              <div className="absolute inset-0 bg-[url('/images/temple-pattern.svg')] opacity-[0.05] bg-repeat mix-blend-overlay" />
              <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-red-500/20 via-red-400/5 to-transparent" />
-             <span className="text-sm font-bold text-red-700 dark:text-red-400 tracking-widest relative z-10">{t.totalExpense}</span>
-             <span className="text-3xl tabular-nums font-sans font-bold text-foreground z-10">{formatCurrency(totalExpenseAmount)}</span>
+             <span style={{ fontSize: `${expenseZoom * 14}px` }} className="font-bold text-red-700 dark:text-red-400 tracking-widest relative z-10 transition-[font-size] duration-200">{t.totalExpense}</span>
+             <span style={{ fontSize: `${expenseZoom * 30}px` }} className="leading-tight tabular-nums font-sans font-bold text-foreground z-10 transition-[font-size] duration-200">{formatCurrency(totalExpenseAmount)}</span>
           </div>
         </motion.div>
       </section>

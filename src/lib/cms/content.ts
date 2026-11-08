@@ -14,11 +14,12 @@
  * - Every function is fail-safe: it returns `{ ok: false }` instead of
  *   throwing so pages can show an error state.
  */
+import fs from "fs/promises";
+import path from "path";
 import type { Where } from "payload";
 import type {
-  Donor,
   Event,
-  Expense,
+  ExpenseFile,
   FestivalYear,
   Gallery,
   Media,
@@ -27,6 +28,7 @@ import type {
   Video,
   Winner,
 } from "@/payload-types";
+import { parseBudgetFile } from "@/lib/pdf/parse-budget-pdf";
 import { getPayloadClient } from "./payload";
 
 export type CmsResult<T> = { ok: true; data: T } | { ok: false; data: T; error: string };
@@ -400,100 +402,6 @@ export async function getCmsSettings(): Promise<CmsResult<CmsSettings | null>> {
 }
 
 /* -------------------------------------------------------------------------- */
-/* Finance (server-side only, public-safe fields)                             */
-/* -------------------------------------------------------------------------- */
-
-export type CmsDonor = {
-  id: string;
-  year: number;
-  name: string;
-  amount: number;
-  descriptionEn: string;
-  descriptionTa: string;
-};
-
-export async function getCmsDonors(year?: number): Promise<CmsResult<CmsDonor[]>> {
-  try {
-    const payload = await getPayloadClient();
-    const res = await payload.find({
-      collection: "donors",
-      locale: "all",
-      sort: "-amount",
-      limit: 1000,
-      depth: 1,
-      pagination: false,
-      where: year ? { "festivalYear.year": { equals: year } } : {},
-    });
-    const list: CmsDonor[] = [];
-    for (const d of res.docs as Donor[]) {
-      const y = yearOf(d.festivalYear as number | FestivalYear);
-      if (y === null) continue;
-      const desc = loc(d.description as Localized<string>);
-      list.push({
-        id: String(d.id),
-        year: y,
-        name: d.donorName,
-        amount: d.amount,
-        descriptionEn: desc.en,
-        descriptionTa: desc.ta,
-      });
-    }
-    return ok(list);
-  } catch (error) {
-    return fail([], error);
-  }
-}
-
-export type CmsExpense = {
-  id: string;
-  year: number;
-  categoryEn: string;
-  categoryTa: string;
-  amount: number;
-  date: string;
-  descriptionEn: string;
-  descriptionTa: string;
-  type: "cash" | "in-kind";
-};
-
-/** `responsiblePerson` is deliberately NOT exposed on the public site. */
-export async function getCmsExpenses(year?: number): Promise<CmsResult<CmsExpense[]>> {
-  try {
-    const payload = await getPayloadClient();
-    const res = await payload.find({
-      collection: "expenses",
-      locale: "all",
-      sort: "-date",
-      limit: 2000,
-      depth: 1,
-      pagination: false,
-      where: year ? { "festivalYear.year": { equals: year } } : {},
-    });
-    const list: CmsExpense[] = [];
-    for (const e of res.docs as Expense[]) {
-      const y = yearOf(e.festivalYear as number | FestivalYear);
-      if (y === null) continue;
-      const cat = loc(e.category as Localized<string>);
-      const desc = loc(e.description as Localized<string>);
-      list.push({
-        id: String(e.id),
-        year: y,
-        categoryEn: cat.en,
-        categoryTa: cat.ta,
-        amount: e.amount,
-        date: e.date,
-        descriptionEn: desc.en,
-        descriptionTa: desc.ta,
-        type: e.type,
-      });
-    }
-    return ok(list);
-  } catch (error) {
-    return fail([], error);
-  }
-}
-
-/* -------------------------------------------------------------------------- */
 /* Pages (editable website text: home, about, ...)                            */
 /* -------------------------------------------------------------------------- */
 
@@ -558,45 +466,98 @@ export type CmsExpenseRow = {
   amount: number | null;
 };
 
-export type CmsFinance = { year: number; donors: CmsDonorRow[]; expenses: CmsExpenseRow[] };
+export type CmsFinanceYear = {
+  year: number;
+  donors: CmsDonorRow[];
+  expenses: CmsExpenseRow[];
+  totalIncome: number;
+  totalExpense: number;
+  balance: number;
+  pdfUrl: string;
+};
+
+export type CmsFinance = {
+  year: number;
+  donors: CmsDonorRow[];
+  expenses: CmsExpenseRow[];
+  years: CmsFinanceYear[];
+};
+
+async function readUploadedFileBuffer(folder: string, doc: ExpenseFile): Promise<Buffer | null> {
+  if (doc.filename) {
+    try {
+      const filePath = path.resolve(process.cwd(), folder, doc.filename);
+      return await fs.readFile(filePath);
+    } catch {
+      // Fall through to URL fetch if stored remotely (e.g. R2)
+    }
+  }
+  if (doc.url && /^https?:\/\//i.test(doc.url)) {
+    try {
+      const res = await fetch(doc.url);
+      if (res.ok) return Buffer.from(await res.arrayBuffer());
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
 
 /**
- * Latest festival year that has donor or expense records, shaped for the
- * existing donors / expenses UI. Returns null when the CMS has no finance data
- * (the pages then keep showing their built-in records).
- *
- * `responsiblePerson` stays private in the CMS and is intentionally left blank.
+ * Loads all year-wise finance records strictly from uploaded PDF/Excel files
+ * in Payload CMS (`expense-files`), sorted newest year first.
  */
 export async function getCmsFinance(): Promise<CmsFinance | null> {
-  const [donors, expenses] = await Promise.all([getCmsDonors(), getCmsExpenses()]);
-  if (!donors.ok || !expenses.ok) return null;
-  const years = [...donors.data.map((d) => d.year), ...expenses.data.map((e) => e.year)];
-  if (years.length === 0) return null;
-  const year = Math.max(...years);
+  const byYear = new Map<number, CmsFinanceYear>();
+
+  try {
+    const payload = await getPayloadClient();
+    const res = await payload.find({
+      collection: "expense-files",
+      depth: 1,
+      limit: 100,
+      pagination: false,
+      sort: "-updatedAt",
+      overrideAccess: true,
+    });
+
+    for (const doc of res.docs as ExpenseFile[]) {
+      let y = yearOf(doc.festivalYear as number | FestivalYear);
+      if (y === null && doc.filename) {
+        const ym = doc.filename.match(/\b(20\d{2})\b/);
+        if (ym) y = Number(ym[1]);
+      }
+      const lower = doc.filename?.toLowerCase() ?? "";
+      if (y === null || (!lower.endsWith(".pdf") && !lower.endsWith(".xlsx"))) continue;
+      if (byYear.has(y)) continue;
+
+      const buf = await readUploadedFileBuffer("expense-files", doc);
+      if (!buf) continue;
+      const parsed = parseBudgetFile(buf, doc.filename);
+      if (!parsed) continue;
+
+      byYear.set(y, {
+        year: y,
+        donors: parsed.donors,
+        expenses: parsed.expenses,
+        totalIncome: parsed.totalIncome,
+        totalExpense: parsed.totalExpense,
+        balance: parsed.balance,
+        pdfUrl: doc.url || `/api/expense-files/file/${encodeURIComponent(doc.filename!)}`,
+      });
+    }
+  } catch {
+    return null;
+  }
+
+  const years = [...byYear.values()].sort((a, b) => b.year - a.year);
+  const latest = years[0];
+  if (!latest) return null;
 
   return {
-    year,
-    donors: donors.data
-      .filter((d) => d.year === year)
-      .map((d, i) => ({
-        id: i + 1,
-        donorNameTa: d.name,
-        donorNameEn: d.name,
-        detailsTa: d.descriptionTa,
-        detailsEn: d.descriptionEn,
-        amount: d.amount,
-      })),
-    expenses: expenses.data
-      .filter((e) => e.year === year)
-      .map((e, i) => ({
-        id: i + 1,
-        categoryTa: e.categoryTa,
-        categoryEn: e.categoryEn,
-        detailsTa: e.descriptionTa,
-        detailsEn: e.descriptionEn,
-        responsibleTa: "",
-        responsibleEn: "",
-        amount: e.type === "in-kind" ? null : e.amount,
-      })),
+    year: latest.year,
+    donors: latest.donors,
+    expenses: latest.expenses,
+    years,
   };
 }

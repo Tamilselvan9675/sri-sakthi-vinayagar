@@ -131,3 +131,27 @@ npm start
 - Ensure the `DATABASE_URL` is accessible from the production server.
 - The `AUTH_SECRET` must be set in the production environment variables, otherwise Auth.js will throw a runtime error.
 - Static assets and localized routes (`/en`, `/ta`) are pre-rendered where possible using `sitemap.ts` to maximize SEO.
+
+### Payload upload storage (required for durable production uploads)
+
+Payload stores gallery images, winner photos, CMS PDFs, and finance uploads locally during development:
+
+- `media/` for gallery images, winner photos, CMS images, and CMS PDFs
+- `donor-files/` and `expense-files/` for finance PDFs and Excel files
+
+Those directories are intentionally ignored by Git and are not durable on ephemeral hosts. Production deployments should use Cloudflare R2:
+
+1. Create a bucket and an Object Read & Write API token scoped to that bucket.
+2. Add the four `R2_*` credentials from `.env.example` to the deployment environment.
+3. Attach an HTTPS custom domain such as `media.example.com` to the bucket and set it as `R2_PUBLIC_URL`. Do not use an `r2.dev` URL in production.
+4. Verify the connection before deploying:
+
+```bash
+npm run storage:verify
+```
+
+New uploads are sent to R2 while their existing Payload URLs stay unchanged. For files created locally before R2 was enabled, copy them once (the command never deletes local files):
+
+```bash
+npm run storage:migrate
+```

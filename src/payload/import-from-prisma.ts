@@ -112,28 +112,7 @@ for (const v of await q<{ id: string; festivalYearId: string; titleEn: string; t
   );
 }
 
-/* ------------------------- donations -> donors ---------------------------- */
-for (const d of await q<{ id: string; festivalYearId: string | null; donorName: string | null; amount: string }>(`SELECT * FROM "Donation" WHERE status = 'COMPLETED' AND "donorName" IS NOT NULL`)) {
-  const festivalYear = d.festivalYearId ? yearIdByLegacy.get(d.festivalYearId) : undefined;
-  const done = await exists("donors", "legacyId", d.id);
-  bump("donors", !done && !!festivalYear);
-  if (done || !festivalYear) continue;
-  await payload.create({ collection: "donors", data: { legacyId: d.id, festivalYear, donorName: d.donorName!, amount: Number(d.amount) }, locale: "en" });
-}
-
-/* -------------------------------- expenses -------------------------------- */
-type ExpRow = { id: string; festivalYearId: string; descriptionEn: string; descriptionTa: string; amount: string; expenseDate: Date; categoryEn: string; categoryTa: string };
-for (const e of await q<ExpRow>(`SELECT e.*, c."nameEn" AS "categoryEn", c."nameTa" AS "categoryTa" FROM "Expense" e JOIN "ExpenseCategory" c ON c.id = e."categoryId"`)) {
-  const festivalYear = yearIdByLegacy.get(e.festivalYearId);
-  const done = await exists("expenses", "legacyId", e.id);
-  bump("expenses", !done && !!festivalYear);
-  if (done || !festivalYear) continue;
-  await createBilingual(
-    "expenses",
-    { legacyId: e.id, festivalYear, category: e.categoryEn, amount: Number(e.amount), date: e.expenseDate.toISOString(), description: e.descriptionEn, type: "cash" },
-    { category: e.categoryTa, description: e.descriptionTa },
-  );
-}
+/* Finance (donors / expenses) is now year-wise PDF/Excel uploads, added manually in the CMS. */
 
 /* ------------------------------ temple settings ---------------------------- */
 const existingSettings = await payload.count({ collection: "temple-settings" });

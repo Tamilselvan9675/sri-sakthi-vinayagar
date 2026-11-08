@@ -2,6 +2,8 @@ import { getMessages } from "@/i18n/get-messages";
 import { ExpensesContent } from "./expenses-content";
 import { getCmsFinance } from "@/lib/cms/content";
 
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }) {
   const { locale } = await props.params;
   const messages = await getMessages(locale);
@@ -22,6 +24,7 @@ export default async function ExpensesPage(props: { params: Promise<{ locale: st
         donors={finance?.donors}
         expenses={finance?.expenses}
         year={finance?.year}
+        years={finance?.years}
       />
     </main>
   );

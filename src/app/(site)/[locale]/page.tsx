@@ -6,7 +6,7 @@ import { getActiveFestivalYear, getOrganizers } from "@/lib/api/festival";
 import { getTempleSettings } from "@/lib/api/settings";
 import { getCmsPage } from "@/lib/cms/content";
 import { Countdown } from "@/components/home/countdown";
-import { HeroCarousel } from "@/components/home/hero-carousel";
+import { HeroVideo } from "@/components/home/hero-video";
 import { HomeLocationSection } from "@/components/home/location-section";
 import { SupportTempleSection } from "@/components/home/support-temple-section";
 import { ScheduleCalendarSection } from "@/components/home/schedule-calendar-section";
@@ -54,8 +54,8 @@ export default async function LocaleHomePage(props: PageProps<"/[locale]">) {
           HERO SECTION
           ================================================================ */}
       <section className="relative flex flex-col items-center justify-center min-h-[85vh] lg:min-h-[90vh] text-center overflow-hidden">
-        {/* Background Carousel */}
-        <HeroCarousel />
+        {/* Background intro video (intro-video-mb on mobile, intro-video on desktop) */}
+        <HeroVideo />
 
         {/* Dark Overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-black/30 z-[1]" />

@@ -45,15 +45,27 @@ function collect(children: React.ReactNode, out: Opt[] = []): Opt[] {
   return out;
 }
 
+export interface GlassSelectProps
+  extends React.SelectHTMLAttributes<HTMLSelectElement> {
+  startIcon?: React.ReactNode;
+  endIcon?: React.ReactNode;
+}
+
 export const GlassSelect = React.forwardRef<
   HTMLSelectElement,
-  React.SelectHTMLAttributes<HTMLSelectElement>
->(function GlassSelect({ className, children, disabled, ...rest }, forwardedRef) {
+  GlassSelectProps
+>(function GlassSelect({ className, children, disabled, startIcon, endIcon, ...rest }, forwardedRef) {
   const selectRef = React.useRef<HTMLSelectElement | null>(null);
   const triggerRef = React.useRef<HTMLButtonElement | null>(null);
   const listRef = React.useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = React.useState(false);
-  const [current, setCurrent] = React.useState("");
+  const [current, setCurrent] = React.useState(() =>
+    rest.value !== undefined
+      ? String(rest.value)
+      : rest.defaultValue !== undefined
+        ? String(rest.defaultValue)
+        : ""
+  );
   const [active, setActive] = React.useState(0);
   const [rect, setRect] = React.useState<DOMRect | null>(null);
   const [mounted, setMounted] = React.useState(false);
@@ -172,49 +184,62 @@ export const GlassSelect = React.forwardRef<
         onKeyDown={onKeyDown}
         className={`${className ?? ""} text-left`}
       >
+        {startIcon}
         <span className="block truncate">{selected?.label ?? ""}</span>
+        {endIcon}
       </button>
       {mounted &&
         open &&
         rect &&
         createPortal(
-          <div
-            ref={listRef}
-            role="listbox"
-            style={{
-              position: "fixed",
-              left: rect.left,
-              minWidth: Math.max(rect.width, 120),
-              ...(openUp
-                ? { bottom: window.innerHeight - rect.top + 6 }
-                : { top: rect.bottom + 6 }),
-              maxHeight: 260,
-              zIndex: 100,
-            }}
-            className="animate-in fade-in-0 zoom-in-95 overflow-y-auto rounded-xl border border-white/30 bg-white/60 p-1.5 text-foreground shadow-[0_8px_32px_rgba(31,38,135,0.25)] ring-1 ring-black/5 backdrop-blur-xl backdrop-saturate-150 duration-150 dark:border-white/10 dark:bg-neutral-900/60 dark:ring-white/5"
-          >
-            {options.map((o, i) => {
-              const isSel = o.value === current;
-              return (
-                <div
-                  key={`${o.value}-${i}`}
-                  role="option"
-                  aria-selected={isSel}
-                  aria-disabled={o.disabled}
-                  onMouseEnter={() => setActive(i)}
-                  onClick={() => commit(o)}
-                  className={`flex cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
-                    i === active ? "bg-white/50 dark:bg-white/10" : ""
-                  } ${isSel ? "font-semibold text-temple-gold" : ""} ${
-                    o.disabled ? "pointer-events-none opacity-50" : ""
-                  }`}
-                >
-                  <span className="truncate">{o.label}</span>
-                  {isSel && <Check className="h-4 w-4 shrink-0" />}
-                </div>
-              );
-            })}
-          </div>,
+          (() => {
+            const width = Math.max(rect.width, 120);
+            const maxLeft =
+              typeof window !== "undefined"
+                ? Math.max(8, window.innerWidth - width - 8)
+                : rect.left;
+            const left = Math.min(Math.max(8, rect.left), maxLeft);
+            return (
+              <div
+                ref={listRef}
+                role="listbox"
+                style={{
+                  position: "fixed",
+                  left,
+                  width,
+                  minWidth: width,
+                  ...(openUp
+                    ? { bottom: window.innerHeight - rect.top + 6 }
+                    : { top: rect.bottom + 6 }),
+                  maxHeight: 260,
+                  zIndex: 100,
+                }}
+                className="animate-in fade-in-0 zoom-in-95 overflow-y-auto rounded-xl border border-white/30 bg-white/60 p-1.5 text-foreground shadow-[0_8px_32px_rgba(31,38,135,0.25)] ring-1 ring-black/5 backdrop-blur-xl backdrop-saturate-150 duration-150 dark:border-white/10 dark:bg-neutral-900/60 dark:ring-white/5"
+              >
+                {options.map((o, i) => {
+                  const isSel = o.value === current;
+                  return (
+                    <div
+                      key={`${o.value}-${i}`}
+                      role="option"
+                      aria-selected={isSel}
+                      aria-disabled={o.disabled}
+                      onMouseEnter={() => setActive(i)}
+                      onClick={() => commit(o)}
+                      className={`flex cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm transition-colors ${
+                        i === active ? "bg-white/50 dark:bg-white/10" : ""
+                      } ${isSel ? "font-semibold text-temple-gold" : ""} ${
+                        o.disabled ? "pointer-events-none opacity-50" : ""
+                      }`}
+                    >
+                      <span className="truncate">{o.label}</span>
+                      {isSel && <Check className="h-4 w-4 shrink-0" />}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })(),
           document.body
         )}
     </>

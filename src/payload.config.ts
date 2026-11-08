@@ -7,6 +7,7 @@ import sharp from "sharp";
 import { s3Storage } from "@payloadcms/storage-s3";
 import {
   AuditLogs,
+  ContactMessages,
   Donors,
   Events,
   Expenses,
@@ -19,6 +20,7 @@ import {
   Videos,
   Winners,
 } from "./payload/collections.ts";
+import { getR2StorageConfig } from "./lib/storage/r2.ts";
 
 const filename = fileURLToPath(import.meta.url);
 const dirname = path.dirname(filename);
@@ -30,18 +32,11 @@ const dirname = path.dirname(filename);
  * domain so files are served straight from Cloudflare; leave it empty to have
  * Payload stream files from the (private) bucket instead.
  */
-const r2 = {
-  accountId: process.env.R2_ACCOUNT_ID,
-  accessKeyId: process.env.R2_ACCESS_KEY_ID,
-  secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
-  bucket: process.env.R2_BUCKET,
-  publicUrl: process.env.R2_PUBLIC_URL?.replace(/\/+$/, ""),
-};
-const r2Enabled = Boolean(r2.accountId && r2.accessKeyId && r2.secretAccessKey && r2.bucket);
+const r2 = getR2StorageConfig();
 
-if (!r2Enabled && process.env.NODE_ENV === "production") {
+if (!r2.enabled && process.env.NODE_ENV === "production") {
   console.warn(
-    "[payload] Cloudflare R2 is not configured (R2_ACCOUNT_ID / R2_ACCESS_KEY_ID / R2_SECRET_ACCESS_KEY / R2_BUCKET). Uploads fall back to local disk, which is not persistent on most hosts.",
+    `[payload] Cloudflare R2 is not configured (${r2.missing.join(" / ")}). Uploads fall back to local disk, which is not persistent on most hosts.`,
   );
 }
 
@@ -65,6 +60,7 @@ export default buildConfig({
     Videos,
     Donors,
     Expenses,
+    ContactMessages,
     AuditLogs,
   ],
   // Tamil + English content. Static UI strings stay in next-intl JSON files.
@@ -81,9 +77,11 @@ export default buildConfig({
   upload: { limits: { fileSize: 15 * 1024 * 1024 } },
   plugins: [
     s3Storage({
-      enabled: r2Enabled,
+      enabled: r2.enabled,
       alwaysInsertFields: true,
       collections: {
+        "donor-files": true,
+        "expense-files": true,
         media: r2.publicUrl
           ? {
               disablePayloadAccessControl: true,
@@ -95,7 +93,7 @@ export default buildConfig({
       bucket: r2.bucket ?? "",
       config: {
         region: "auto",
-        endpoint: `https://${r2.accountId}.r2.cloudflarestorage.com`,
+        endpoint: r2.endpoint,
         credentials: {
           accessKeyId: r2.accessKeyId ?? "",
           secretAccessKey: r2.secretAccessKey ?? "",

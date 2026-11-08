@@ -76,8 +76,9 @@ export interface Config {
     winners: Winner;
     gallery: Gallery;
     videos: Video;
-    donors: Donor;
-    expenses: Expense;
+    'donor-files': DonorFile;
+    'expense-files': ExpenseFile;
+    'contact-messages': ContactMessage;
     'audit-logs': AuditLog;
     'payload-kv': PayloadKv;
     'payload-locked-documents': PayloadLockedDocument;
@@ -95,8 +96,9 @@ export interface Config {
     winners: WinnersSelect<false> | WinnersSelect<true>;
     gallery: GallerySelect<false> | GallerySelect<true>;
     videos: VideosSelect<false> | VideosSelect<true>;
-    donors: DonorsSelect<false> | DonorsSelect<true>;
-    expenses: ExpensesSelect<false> | ExpensesSelect<true>;
+    'donor-files': DonorFilesSelect<false> | DonorFilesSelect<true>;
+    'expense-files': ExpenseFilesSelect<false> | ExpenseFilesSelect<true>;
+    'contact-messages': ContactMessagesSelect<false> | ContactMessagesSelect<true>;
     'audit-logs': AuditLogsSelect<false> | AuditLogsSelect<true>;
     'payload-kv': PayloadKvSelect<false> | PayloadKvSelect<true>;
     'payload-locked-documents': PayloadLockedDocumentsSelect<false> | PayloadLockedDocumentsSelect<true>;
@@ -378,36 +380,81 @@ export interface Video {
   _status?: ('draft' | 'published') | null;
 }
 /**
+ * Upload the yearly Donors and Expenses file (PDF or Excel .xlsx).
+ *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "donors".
+ * via the `definition` "donor-files".
  */
-export interface Donor {
+export interface DonorFile {
   id: number;
+  /**
+   * One file per year.
+   */
   festivalYear: number | FestivalYear;
-  legacyId?: string | null;
-  donorName: string;
-  amount: number;
-  description?: string | null;
+  prefix?: string | null;
+  _objectKey?: string | null;
   updatedAt: string;
   createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
 }
 /**
+ * Upload the yearly Donors and Expenses file (PDF or Excel .xlsx).
+ *
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "expenses".
+ * via the `definition` "expense-files".
  */
-export interface Expense {
+export interface ExpenseFile {
   id: number;
-  festivalYear: number | FestivalYear;
-  legacyId?: string | null;
   /**
-   * e.g. Decoration, Food, Prizes, Sound
+   * One file per year.
    */
-  category: string;
-  amount: number;
-  date: string;
-  description: string;
-  responsiblePerson?: string | null;
-  type: 'cash' | 'in-kind';
+  festivalYear: number | FestivalYear;
+  prefix?: string | null;
+  _objectKey?: string | null;
+  updatedAt: string;
+  createdAt: string;
+  url?: string | null;
+  thumbnailURL?: string | null;
+  filename?: string | null;
+  mimeType?: string | null;
+  filesize?: number | null;
+  width?: number | null;
+  height?: number | null;
+}
+/**
+ * Messages sent from the website contact form. Use the Reply section to email the visitor.
+ *
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contact-messages".
+ */
+export interface ContactMessage {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  rating?: number | null;
+  message: string;
+  visitorLocale?: string | null;
+  confirmationSent?: boolean | null;
+  notificationSent?: boolean | null;
+  emailError?: string | null;
+  /**
+   * Defaults to: Re: your message to Sri Sakthi Vinayagar Temple
+   */
+  replySubject?: string | null;
+  replyMessage?: string | null;
+  /**
+   * Sends the custom feedback email to the visitor's submitted email address via Resend. Resets after sending.
+   */
+  sendReply?: boolean | null;
+  repliedAt?: string | null;
+  repliedBy?: string | null;
   updatedAt: string;
   createdAt: string;
 }
@@ -504,12 +551,16 @@ export interface PayloadLockedDocument {
         value: number | Video;
       } | null)
     | ({
-        relationTo: 'donors';
-        value: number | Donor;
+        relationTo: 'donor-files';
+        value: number | DonorFile;
       } | null)
     | ({
-        relationTo: 'expenses';
-        value: number | Expense;
+        relationTo: 'expense-files';
+        value: number | ExpenseFile;
+      } | null)
+    | ({
+        relationTo: 'contact-messages';
+        value: number | ContactMessage;
       } | null)
     | ({
         relationTo: 'audit-logs';
@@ -773,30 +824,59 @@ export interface VideosSelect<T extends boolean = true> {
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "donors_select".
+ * via the `definition` "donor-files_select".
  */
-export interface DonorsSelect<T extends boolean = true> {
+export interface DonorFilesSelect<T extends boolean = true> {
   festivalYear?: T;
-  legacyId?: T;
-  donorName?: T;
-  amount?: T;
-  description?: T;
+  prefix?: T;
+  _objectKey?: T;
   updatedAt?: T;
   createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
 }
 /**
  * This interface was referenced by `Config`'s JSON-Schema
- * via the `definition` "expenses_select".
+ * via the `definition` "expense-files_select".
  */
-export interface ExpensesSelect<T extends boolean = true> {
+export interface ExpenseFilesSelect<T extends boolean = true> {
   festivalYear?: T;
-  legacyId?: T;
-  category?: T;
-  amount?: T;
-  date?: T;
-  description?: T;
-  responsiblePerson?: T;
-  type?: T;
+  prefix?: T;
+  _objectKey?: T;
+  updatedAt?: T;
+  createdAt?: T;
+  url?: T;
+  thumbnailURL?: T;
+  filename?: T;
+  mimeType?: T;
+  filesize?: T;
+  width?: T;
+  height?: T;
+}
+/**
+ * This interface was referenced by `Config`'s JSON-Schema
+ * via the `definition` "contact-messages_select".
+ */
+export interface ContactMessagesSelect<T extends boolean = true> {
+  name?: T;
+  email?: T;
+  phone?: T;
+  rating?: T;
+  message?: T;
+  visitorLocale?: T;
+  confirmationSent?: T;
+  notificationSent?: T;
+  emailError?: T;
+  replySubject?: T;
+  replyMessage?: T;
+  sendReply?: T;
+  repliedAt?: T;
+  repliedBy?: T;
   updatedAt?: T;
   createdAt?: T;
 }
