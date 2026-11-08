@@ -82,13 +82,13 @@ export default buildConfig({
       collections: {
         "donor-files": true,
         "expense-files": true,
-        media: r2.publicUrl
-          ? {
-              disablePayloadAccessControl: true,
-              generateFileURL: ({ filename: name, prefix }) =>
-                [r2.publicUrl, prefix, name].filter(Boolean).join("/"),
-            }
-          : true,
+        media: {
+          disablePayloadAccessControl: true,
+          generateFileURL: ({ filename: name, prefix }) =>
+            r2.publicUrl
+              ? [r2.publicUrl, prefix, name].filter(Boolean).join("/")
+              : `/api/media/file/${encodeURIComponent(name)}`,
+        },
       },
       bucket: r2.bucket ?? "",
       config: {

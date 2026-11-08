@@ -22,17 +22,19 @@ import { Button } from "@/components/ui/button";
 interface HeaderProps {
   locale: string;
   messages: Messages;
+  logoUrl?: string | null;
 }
 
 /**
  * Temple logo component — used in desktop header, mobile header, and footer.
  * Falls back to OM symbol if the logo image is not available.
  */
-function TempleLogo({ size = "sm" }: { size?: "sm" | "md" }) {
+function TempleLogo({ size = "sm", logoUrl }: { size?: "sm" | "md"; logoUrl?: string | null }) {
   const [hasError, setHasError] = useState(false);
   const dimensions = size === "sm" ? { w: 36, h: 36 } : { w: 40, h: 40 };
+  const imageSrc = logoUrl || "/images/temple-logo.png";
 
-  if (hasError) {
+  if (hasError || !imageSrc) {
     return (
       <div
         className={`${size === "sm" ? "h-9 w-9" : "h-10 w-10"} rounded-lg bg-gradient-to-br from-red-950 to-red-900 flex items-center justify-center border border-temple-gold/30 shadow-inner`}
@@ -52,7 +54,7 @@ function TempleLogo({ size = "sm" }: { size?: "sm" | "md" }) {
       className={`${size === "sm" ? "h-9 w-9" : "h-10 w-10"} rounded-lg overflow-hidden flex items-center justify-center shrink-0 border border-temple-gold/20 shadow-sm`}
     >
       <Image
-        src="/images/temple-logo.png"
+        src={imageSrc}
         alt="Sri Sakthi Vinayagar Temple"
         width={dimensions.w}
         height={dimensions.h}
@@ -65,7 +67,7 @@ function TempleLogo({ size = "sm" }: { size?: "sm" | "md" }) {
 
 export { TempleLogo };
 
-export function Header({ locale, messages }: HeaderProps) {
+export function Header({ locale, messages, logoUrl }: HeaderProps) {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -111,7 +113,7 @@ export function Header({ locale, messages }: HeaderProps) {
             href={`/${locale}`}
             className="flex items-center gap-3 group shrink-0"
           >
-            <TempleLogo size="sm" />
+            <TempleLogo size="sm" logoUrl={logoUrl} />
             <div className="hidden sm:flex flex-col">
               <span className="font-display text-base font-bold tracking-tight leading-tight text-foreground group-hover:text-temple-gold transition-colors duration-300">
                 {locale === "ta" ? messages.site.nameTa : "Sri Sakthi Vinayagar"}
@@ -198,7 +200,7 @@ export function Header({ locale, messages }: HeaderProps) {
                       className="flex items-center gap-3"
                       onClick={() => setMobileOpen(false)}
                     >
-                      <TempleLogo size="md" />
+                      <TempleLogo size="md" logoUrl={logoUrl} />
                       <div className="flex flex-col">
                         <span className="font-display text-sm font-bold leading-tight text-foreground">
                           {locale === "ta" ? messages.site.nameTa : "Sri Sakthi Vinayagar"}

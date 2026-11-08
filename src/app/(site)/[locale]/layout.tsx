@@ -56,11 +56,11 @@ export default async function LocaleLayout(
 
   return (
     <div lang={locale}>
-      <Header locale={locale} messages={messages} />
+      <Header locale={locale} messages={messages} logoUrl={settings?.logoUrl} />
       <div className="flex-1">
         {props.children}
       </div>
-      <Footer locale={locale} messages={messages} />
+      <Footer locale={locale} messages={messages} logoUrl={settings?.logoUrl} />
       <WhatsAppFab phoneNumber={settings?.whatsapp || TEMPLE_CONTACT.whatsapp} />
     </div>
   );

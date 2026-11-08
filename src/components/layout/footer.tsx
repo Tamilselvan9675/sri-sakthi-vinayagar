@@ -18,6 +18,7 @@ import { MotionButton } from "@/components/home/motion-button";
 interface FooterProps {
   locale: string;
   messages: Messages;
+  logoUrl?: string | null;
 }
 
 function InstagramIcon(props: React.SVGProps<SVGSVGElement>) {
@@ -61,11 +62,12 @@ function WhatsappIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
-function FooterLogo({ size = "md" }: { size?: "md" | "lg" }) {
+function FooterLogo({ size = "md", logoUrl }: { size?: "md" | "lg"; logoUrl?: string | null }) {
   const [hasError, setHasError] = useState(false);
   const dimensions = size === "lg" ? { w: 72, h: 72, css: "h-20 w-20" } : { w: 44, h: 44, css: "h-11 w-11" };
+  const imageSrc = logoUrl || "/images/temple-logo.png";
 
-  if (hasError) {
+  if (hasError || !imageSrc) {
     return (
       <div className={`${dimensions.css} rounded-xl bg-white/5 flex items-center justify-center border border-white/10 shrink-0 backdrop-blur-sm shadow-xl`}>
         <span className="text-temple-gold font-bold text-2xl" aria-hidden="true">
@@ -78,7 +80,7 @@ function FooterLogo({ size = "md" }: { size?: "md" | "lg" }) {
   return (
     <div className={`${dimensions.css} rounded-xl overflow-hidden flex items-center justify-center shrink-0 bg-white/5 border border-white/10 p-2 backdrop-blur-sm shadow-xl`}>
       <Image
-        src="/images/temple-logo.png"
+        src={imageSrc}
         alt="Sri Sakthi Vinayagar Temple"
         width={dimensions.w}
         height={dimensions.h}
@@ -89,7 +91,7 @@ function FooterLogo({ size = "md" }: { size?: "md" | "lg" }) {
   );
 }
 
-export function Footer({ locale, messages }: FooterProps) {
+export function Footer({ locale, messages, logoUrl }: FooterProps) {
   const currentYear = new Date().getFullYear();
   const ref = useRef<HTMLElement>(null);
   const isInView = useInView(ref, { once: true, margin: "0px 0px -40px 0px" });
@@ -149,7 +151,7 @@ export function Footer({ locale, messages }: FooterProps) {
         <div className="flex flex-col items-center text-center pt-8 pb-6 border-b border-white/10 space-y-5">
           <div className="relative group">
             <div className="absolute -inset-4 bg-temple-gold/20 rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-            <FooterLogo size="lg" />
+            <FooterLogo size="lg" logoUrl={logoUrl} />
           </div>
 
           <div className="max-w-2xl space-y-2">

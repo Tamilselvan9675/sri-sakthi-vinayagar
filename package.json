@@ -16,6 +16,7 @@
     "test:finance": "vitest run tests/unit/contribution-calculator.test.ts",
     "test:payments": "vitest run tests/unit/payment-service.test.ts",
     "storage:verify": "node --import tsx src/scripts/verify-r2-storage.mts",
+    "storage:test": "node --import tsx src/scripts/test-r2-upload-delivery.mts",
     "storage:migrate": "node --import tsx src/scripts/migrate-payload-uploads-to-r2.mts",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
