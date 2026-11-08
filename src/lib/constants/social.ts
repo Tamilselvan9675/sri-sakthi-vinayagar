@@ -11,7 +11,7 @@ export const TEMPLE_CONTACT = {
   /** Public address used for mailto: links (override with NEXT_PUBLIC_CONTACT_EMAIL). */
   email: process.env.NEXT_PUBLIC_CONTACT_EMAIL || "srisakthivinayagarofficial@gmail.com",
   address: {
-    en: "Sri Sakthi Vinayagar Temple\nKulakarai Street\nKadambadi Post\nKadambadi\nMamallapuram\nChengalpattu - 603104",
+    en: "Sri Sakthi Vinayagar Temple\nKulakarai Street\nKadambadi (Post)\nKadambadi\nMamallapuram\nChengalpattu - 603104",
     ta: "ஸ்ரீ சக்தி விநாயகர் கோயில்\nகுலகரை தெரு\nகடம்பாடி அஞ்சல்\nகடம்பாடி\nமாமல்லபுரம்\nசெங்கல்பட்டு - 603104",
   },
 } as const;

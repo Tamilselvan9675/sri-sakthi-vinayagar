@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 import { GalleryItem } from "@/generated/prisma/client";
 import { getLocalizedField } from "@/lib/utils/locale";
@@ -13,8 +14,19 @@ interface LightboxProps {
   onClose: () => void;
 }
 
-export function Lightbox({ items, locale, initialIndex = 0, isOpen, onClose }: LightboxProps) {
+export function Lightbox({
+  items,
+  locale,
+  initialIndex = 0,
+  isOpen,
+  onClose,
+}: LightboxProps) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handlePrev = () => {
     setCurrentIndex((prev) => (prev > 0 ? prev - 1 : items.length - 1));
@@ -48,62 +60,93 @@ export function Lightbox({ items, locale, initialIndex = 0, isOpen, onClose }: L
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, currentIndex, items.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!isOpen || items.length === 0) return null;
+  if (!mounted || !isOpen || items.length === 0) return null;
 
-  const currentItem = items[currentIndex];
+  const currentItem = items[currentIndex] ?? items[0];
   const title = getLocalizedField(currentItem, "title", locale);
+  const isTa = locale === "ta";
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 backdrop-blur-sm">
-      <button 
-        onClick={onClose}
-        className="absolute top-4 right-4 z-50 p-2 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 rounded-full transition-all"
-        aria-label="Close"
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] h-[100dvh] w-screen bg-black/95 backdrop-blur-xl flex flex-col justify-between overflow-hidden select-none"
+      onClick={onClose}
+    >
+      {/* Top Bar */}
+      <div
+        className="shrink-0 w-full px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between border-b border-white/10 bg-black/75 backdrop-blur-md z-30"
+        onClick={(e) => e.stopPropagation()}
       >
-        <X className="w-6 h-6" />
-      </button>
+        <span className="text-white/75 text-xs sm:text-sm font-medium tabular-nums px-2.5 py-1 rounded bg-white/10">
+          {currentIndex + 1} / {items.length}
+        </span>
 
-      {items.length > 1 && (
-        <>
-          <button 
-            onClick={handlePrev}
-            className="absolute left-4 z-50 p-3 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 rounded-full transition-all"
-            aria-label="Previous"
-          >
-            <ChevronLeft className="w-8 h-8" />
-          </button>
-          <button 
-            onClick={handleNext}
-            className="absolute right-4 z-50 p-3 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 rounded-full transition-all"
-            aria-label="Next"
-          >
-            <ChevronRight className="w-8 h-8" />
-          </button>
-        </>
-      )}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Close"
+          className="px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-white/15 hover:bg-temple-gold text-white hover:text-black font-semibold text-xs sm:text-sm inline-flex items-center gap-1.5 border border-white/25 transition-all shadow-lg cursor-pointer"
+        >
+          <X className="w-4 h-4 sm:w-5 sm:h-5" />
+          <span className="hidden sm:inline">{isTa ? "மூடு" : "Close"}</span>
+        </button>
+      </div>
 
-      <div className="relative w-full h-full max-w-6xl max-h-[90vh] flex flex-col items-center justify-center p-4 sm:p-8">
-        <div className="relative w-full flex-1 flex items-center justify-center">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img 
-            src={currentItem.imageUrl} 
-            alt={getLocalizedField(currentItem, "altText", locale) || title || "Gallery Image"}
-            className="max-w-full max-h-full object-contain shadow-2xl rounded-sm"
-          />
-        </div>
-        
-        {title && (
-          <div className="absolute bottom-4 left-0 right-0 text-center pointer-events-none">
-            <span className="inline-block bg-black/60 text-white px-4 py-2 rounded-full backdrop-blur-md text-sm shadow-xl">
-              {title}
-            </span>
-          </div>
+      {/* Image Stage */}
+      <div className="relative flex-1 min-h-0 w-full flex items-center justify-center px-3 sm:px-16 py-3 overflow-hidden">
+        {items.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePrev();
+              }}
+              className="absolute left-2 sm:left-5 top-1/2 -translate-y-1/2 h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-black/70 hover:bg-temple-gold text-white hover:text-black backdrop-blur-md transition-all z-30 flex items-center justify-center border border-white/20 shadow-lg cursor-pointer"
+              aria-label="Previous"
+            >
+              <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleNext();
+              }}
+              className="absolute right-2 sm:right-5 top-1/2 -translate-y-1/2 h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-black/70 hover:bg-temple-gold text-white hover:text-black backdrop-blur-md transition-all z-30 flex items-center justify-center border border-white/20 shadow-lg cursor-pointer"
+              aria-label="Next"
+            >
+              <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
+            </button>
+          </>
         )}
 
-        <div className="absolute top-4 left-4 text-white/50 text-sm font-mono tracking-widest">
-          {currentIndex + 1} / {items.length}
+        <div
+          className="relative w-full h-full max-w-6xl mx-auto flex items-center justify-center"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={currentItem.imageUrl}
+            alt={
+              getLocalizedField(currentItem, "altText", locale) ||
+              title ||
+              "Gallery Image"
+            }
+            className="max-w-full max-h-full w-auto h-auto object-contain rounded-lg shadow-2xl border border-white/10"
+          />
         </div>
       </div>
-    </div>
+
+      {/* Bottom Bar */}
+      <div
+        className="shrink-0 w-full px-4 sm:px-6 py-3 border-t border-white/10 bg-black/80 backdrop-blur-md text-center z-30"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p className="text-white text-sm sm:text-base font-display font-bold line-clamp-1">
+          {title || (isTa ? "புகைப்படம்" : "Gallery Photo")}
+        </p>
+      </div>
+    </div>,
+    document.body
   );
 }

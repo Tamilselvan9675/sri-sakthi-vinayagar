@@ -1,22 +1,27 @@
 import { getLocalizedField } from "@/lib/utils/locale";
 import { Messages } from "@/i18n/get-messages";
-import { Card, CardContent } from "@/components/ui/card";
-import { Trophy, Medal, Award } from "lucide-react";
+import { Trophy, Medal, Award, Maximize2 } from "lucide-react";
 import { Winner, Event } from "@/generated/prisma/client";
 
 interface WinnerCardProps {
-  winner: Winner & { event?: Event | null };
+  winner: Winner & { event?: Event | null; festivalYear?: { year: number } };
   locale: string;
   messages: Messages;
   showYear?: boolean;
+  viewMode?: "grid" | "list";
+  onClick?: () => void;
 }
 
-export function WinnerCard({ winner, locale }: WinnerCardProps) {
-  // Determine icon based on position
+export function WinnerCard({
+  winner,
+  locale,
+  viewMode = "grid",
+  onClick,
+}: WinnerCardProps) {
   const position = winner.position.toLowerCase();
   let PositionIcon = Award;
-  let iconColor = "text-primary/40";
-  
+  let iconColor = "text-temple-gold";
+
   if (position.includes("1") || position.includes("first")) {
     PositionIcon = Trophy;
     iconColor = "text-yellow-500";
@@ -25,50 +30,129 @@ export function WinnerCard({ winner, locale }: WinnerCardProps) {
     iconColor = "text-slate-400";
   } else if (position.includes("3") || position.includes("third")) {
     PositionIcon = Medal;
-    iconColor = "text-amber-700";
+    iconColor = "text-amber-600";
+  }
+
+  const category = getLocalizedField(winner, "category", locale);
+  const prize = getLocalizedField(winner, "prize", locale);
+
+  if (viewMode === "list") {
+    return (
+      <div
+        onClick={onClick}
+        className={`group relative flex items-center gap-3.5 sm:gap-4 p-2.5 sm:p-3.5 rounded-xl border border-border/60 hover:border-temple-gold/50 bg-card shadow-sm hover:shadow-md transition-all duration-300 ${
+          onClick ? "cursor-pointer" : ""
+        }`}
+      >
+        {/* Left Thumbnail */}
+        <div className="relative w-24 sm:w-32 aspect-[4/3] shrink-0 rounded-lg overflow-hidden bg-temple-gold/5 border border-border/40 flex items-center justify-center">
+          {winner.photoUrl ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={winner.photoUrl}
+              alt={winner.name}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              loading="lazy"
+            />
+          ) : (
+            <PositionIcon className={`h-9 w-9 ${iconColor}`} />
+          )}
+          <div className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded bg-black/75 text-white text-[10px] font-bold uppercase tracking-wider">
+            {winner.position}
+          </div>
+        </div>
+
+        {/* Center Details */}
+        <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-temple-gold bg-temple-gold/10 px-2 py-0.5 rounded">
+              {category}
+            </span>
+            <span className="text-[10px] font-semibold text-foreground bg-muted px-2 py-0.5 rounded">
+              {winner.position}
+            </span>
+          </div>
+          <h3 className="text-sm sm:text-base font-bold text-foreground line-clamp-1 group-hover:text-temple-gold transition-colors">
+            {winner.name}
+          </h3>
+          {prize ? (
+            <p className="text-xs sm:text-sm text-muted-foreground line-clamp-1">
+              {prize}
+            </p>
+          ) : (
+            winner.festivalYear && (
+              <p className="text-xs text-muted-foreground">
+                {winner.festivalYear.year}
+              </p>
+            )
+          )}
+        </div>
+
+        {/* Right Action Icon */}
+        {winner.photoUrl && (
+          <div className="shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-temple-gold/10 group-hover:bg-temple-gold text-temple-gold group-hover:text-white flex items-center justify-center transition-colors">
+            <Maximize2 className="w-4 h-4" />
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (
-    <Card className="text-center overflow-hidden hover:shadow-md transition-shadow group">
-      <div className="bg-primary/5 h-40 flex items-center justify-center relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background/20 z-10" />
+    <div
+      onClick={onClick}
+      className={`group relative flex flex-col rounded-xl overflow-hidden shadow-sm hover:shadow-lg border border-border/60 hover:border-temple-gold/50 bg-card transition-all duration-300 h-full ${
+        onClick ? "cursor-pointer" : ""
+      }`}
+    >
+      {/* Thumbnail */}
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-temple-gold/5 flex items-center justify-center shrink-0">
         {winner.photoUrl ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img 
-            src={winner.photoUrl} 
-            alt={winner.name} 
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-          />
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={winner.photoUrl}
+              alt={winner.name}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-300" />
+            <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-black/60 backdrop-blur-md p-1.5 rounded-full text-white">
+              <Maximize2 className="w-3.5 h-3.5" />
+            </div>
+          </>
         ) : (
-          <PositionIcon className={`h-16 w-16 ${iconColor}`} />
+          <PositionIcon className={`h-12 w-12 ${iconColor}`} />
         )}
-        
-        <div className="absolute top-3 right-3 z-20 bg-background/80 backdrop-blur-sm px-2 py-1 rounded shadow-sm border border-border">
-          <span className="text-xs font-bold uppercase tracking-wider">{winner.position}</span>
+
+        {/* Position Badge */}
+        <div className="absolute top-2 left-2 z-10 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-black/70 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider border border-white/15">
+          <PositionIcon className={`w-3 h-3 ${iconColor}`} />
+          <span>{winner.position}</span>
         </div>
       </div>
-      
-      <CardContent className="p-6 space-y-3 relative z-20 bg-background">
-        <h3 className="font-bold text-lg leading-tight line-clamp-1">{winner.name}</h3>
-        
-        <div className="space-y-1">
-          <p className="text-sm font-medium text-primary">
-            {getLocalizedField(winner, "category", locale)}
-          </p>
-          {winner.event && (
-            <p className="text-xs text-muted-foreground line-clamp-1">
-              {getLocalizedField(winner.event, "title", locale)}
-            </p>
+
+      {/* Card Content */}
+      <div className="p-3 flex flex-col justify-between gap-1 flex-grow bg-card">
+        <div className="flex items-center justify-between gap-1.5">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-temple-gold bg-temple-gold/10 px-2 py-0.5 rounded line-clamp-1">
+            {category}
+          </span>
+          {winner.festivalYear && (
+            <span className="text-[10px] text-muted-foreground font-medium shrink-0">
+              {winner.festivalYear.year}
+            </span>
           )}
         </div>
-        
-        {getLocalizedField(winner, "prize", locale) && (
-          <div className="mt-4 pt-4 border-t border-border/50 inline-block w-full">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-1">Prize</span>
-            <span className="text-sm font-semibold">{getLocalizedField(winner, "prize", locale)}</span>
-          </div>
+        <h3 className="text-xs sm:text-sm font-bold text-foreground line-clamp-1 group-hover:text-temple-gold transition-colors">
+          {winner.name}
+        </h3>
+        {prize && (
+          <p className="text-[11px] text-muted-foreground line-clamp-1">
+            {prize}
+          </p>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

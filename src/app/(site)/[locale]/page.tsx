@@ -86,17 +86,17 @@ export default async function LocaleHomePage(props: PageProps<"/[locale]">) {
           </p>
 
           {/* CTAs */}
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4">
-            <Link href={`/${locale}/festival`}>
-              <MotionButton variant="temple-primary">
-                {messages.hero.viewFestival}
-                <ArrowRight className="h-4 w-4" />
-              </MotionButton>
-            </Link>
-            <Link href={`/${locale}/donations`}>
-              <MotionButton variant="hero-gold">
-                <Heart className="h-4 w-4" />
-                {messages.hero.donate}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 pt-4">
+            <Link href={`/${locale}/donations`} className="group">
+              <MotionButton
+                variant="premium-gold"
+                className="rounded-full px-8 py-3.5 text-sm sm:text-base font-bold tracking-wide shadow-[0_0_30px_rgba(212,175,55,0.4)] hover:shadow-[0_0_40px_rgba(212,175,55,0.65)] ring-1 ring-white/40 gap-2.5"
+              >
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[oklch(0.35_0.12_22)]/15 text-[oklch(0.28_0.12_22)] transition-transform duration-300 group-hover:scale-110">
+                  <Heart className="h-3.5 w-3.5 fill-current" />
+                </span>
+                <span>{messages.hero.donate}</span>
+                <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
               </MotionButton>
             </Link>
           </div>

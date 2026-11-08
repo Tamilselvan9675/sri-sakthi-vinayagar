@@ -176,6 +176,14 @@ export async function getCmsWinners(opts: Opts = {}): Promise<CmsResult<CmsWinne
 /* Gallery                                                                    */
 /* -------------------------------------------------------------------------- */
 
+export type CmsGalleryPhoto = {
+  id: string;
+  imageUrl: string;
+  thumbUrl: string;
+  descEn: string;
+  descTa: string;
+};
+
 export type CmsGalleryItem = {
   id: string;
   year: number;
@@ -185,6 +193,7 @@ export type CmsGalleryItem = {
   descEn: string;
   descTa: string;
   imageUrl: string;
+  photos: CmsGalleryPhoto[];
 };
 
 const GALLERY_LABEL: Record<string, string> = {
@@ -207,28 +216,56 @@ export async function getCmsGallery(opts: Opts = {}): Promise<CmsResult<CmsGalle
       draft: opts.draft,
       where: publishedOnly(opts.draft),
     });
-    const items: CmsGalleryItem[] = [];
+    const grouped = new Map<string, CmsGalleryItem>();
     for (const album of res.docs as Gallery[]) {
       const year = yearOf(album.festivalYear as number | FestivalYear);
       if (year === null) continue;
       const albumTitle = loc(album.title as Localized<string>);
+      const categoryLabel = GALLERY_LABEL[album.category] ?? album.category;
+      const normalizedTitle = (albumTitle.en || albumTitle.ta || "").trim().toLowerCase();
+      const folderKey = normalizedTitle
+        ? `${year}::${normalizedTitle}`
+        : `${year}::${categoryLabel}::${album.id}`;
+
+      const albumPhotos: CmsGalleryPhoto[] = [];
       (album.photos ?? []).forEach((photo, index) => {
         const url = mediaFullUrl(photo.image as number | Media);
         if (!url) return;
+        const thumbUrl = mediaUrl(photo.image as number | Media) || url;
         const caption = loc(photo.caption as Localized<string>);
-        items.push({
+        albumPhotos.push({
           id: `${album.id}-${photo.id ?? index}`,
-          year,
-          category: GALLERY_LABEL[album.category] ?? album.category,
-          titleEn: albumTitle.en,
-          titleTa: albumTitle.ta,
+          imageUrl: url,
+          thumbUrl,
           descEn: caption.en,
           descTa: caption.ta,
-          imageUrl: url,
         });
       });
+
+      if (albumPhotos.length === 0) continue;
+
+      const existing = grouped.get(folderKey);
+      if (existing) {
+        existing.photos.push(...albumPhotos);
+        if (!existing.descEn && albumPhotos[0].descEn) {
+          existing.descEn = albumPhotos[0].descEn;
+          existing.descTa = albumPhotos[0].descTa;
+        }
+      } else {
+        grouped.set(folderKey, {
+          id: String(album.id),
+          year,
+          category: categoryLabel,
+          titleEn: albumTitle.en,
+          titleTa: albumTitle.ta,
+          descEn: albumPhotos[0].descEn,
+          descTa: albumPhotos[0].descTa,
+          imageUrl: albumPhotos[0].imageUrl,
+          photos: albumPhotos,
+        });
+      }
     }
-    return ok(items);
+    return ok(Array.from(grouped.values()));
   } catch (error) {
     return fail([], error);
   }

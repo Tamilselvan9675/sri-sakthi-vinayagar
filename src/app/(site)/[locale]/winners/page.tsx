@@ -2,6 +2,8 @@ import { getMessages } from "@/i18n/get-messages";
 import { getAllFestivalYears, getWinners } from "@/lib/api/festival";
 import { WinnersContent } from "./winners-content";
 
+export const dynamic = "force-dynamic";
+
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }) {
   const { locale } = await props.params;
   const messages = await getMessages(locale);

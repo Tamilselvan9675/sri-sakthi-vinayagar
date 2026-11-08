@@ -155,11 +155,10 @@ export const Media: CollectionConfig = {
       "video/webm",
       "video/quicktime",
     ],
-    imageSizes: [
-      { name: "thumbnail", width: 400, height: 300, position: "centre" },
-      { name: "card", width: 800, height: 600, position: "centre" },
-    ],
-    adminThumbnail: "thumbnail",
+    // If imageSizes is omitted, Payload only stores the original image in Cloudflare R2
+    // without creating and uploading extra resized variants (-400x300, -800x600).
+    adminThumbnail: ({ doc }) => (doc?.url as string) || null,
+    
   },
   hooks: { beforeValidate: [setStorageFolder("media")] },
   fields: [

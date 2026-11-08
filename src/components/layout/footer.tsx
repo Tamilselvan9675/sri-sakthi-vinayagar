@@ -108,7 +108,6 @@ export function Footer({ locale, messages }: FooterProps) {
   ];
 
   const festivalLinks = [
-    { href: `/${locale}/festival`, label: messages.common.festival },
     { href: `/${locale}/winners`, label: messages.common.winners },
     { href: `/${locale}/gallery`, label: messages.common.gallery },
     { href: `/${locale}/videos`, label: messages.common.videos },

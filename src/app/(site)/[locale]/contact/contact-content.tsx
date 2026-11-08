@@ -38,7 +38,7 @@ export function ContactContent({ locale, messages, settings }: ContactContentPro
   const waNumber = cleanWaDigits.startsWith("91") && cleanWaDigits.length > 10 ? cleanWaDigits : `91${cleanWaDigits.replace(/^0+/, "")}`;
   const whatsappDisplay = settings?.whatsapp || TEMPLE_CONTACT.phone;
   const email = TEMPLE_CONTACT.email;
-  const addressEn = settings?.addressEn || "Sri Sakthi Vinayagar Temple, Kulakarai Street, Kadambadi Post, Mamallapuram, Chengalpattu - 603104";
+  const addressEn = settings?.addressEn || "Sri Sakthi Vinayagar Temple, Kulakarai Street, Kadambadi (Post), Mamallapuram, Chengalpattu - 603104";
   const addressTa = settings?.addressTa || addressEn;
   const instagram = SOCIAL_LINKS.instagram;
 

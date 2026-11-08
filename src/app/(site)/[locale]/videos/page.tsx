@@ -1,7 +1,9 @@
 import { draftMode } from "next/headers";
 import { getMessages } from "@/i18n/get-messages";
-import { getCmsVideos, VIDEO_CATEGORY_LABELS } from "@/lib/cms/content";
+import { getCmsFestivalYears, getCmsVideos, VIDEO_CATEGORY_LABELS } from "@/lib/cms/content";
 import { VideosContent } from "./videos-content";
+
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata(props: { params: Promise<{ locale: string }> }) {
   const { locale } = await props.params;
@@ -19,7 +21,10 @@ export default async function VideosPage(props: {
   const { locale } = await props.params;
   const messages = await getMessages(locale);
   const { isEnabled: draft } = await draftMode();
-  const videos = await getCmsVideos({ draft });
+  const [videos, festivalYears] = await Promise.all([
+    getCmsVideos({ draft }),
+    getCmsFestivalYears({ draft }),
+  ]);
   
   return (
     <main className="flex min-h-screen flex-col bg-gradient-to-b from-[#fdfbf7] via-orange-50/30 to-[#fdfbf7] dark:from-background dark:via-red-950/20 dark:to-background relative overflow-hidden">
@@ -32,6 +37,7 @@ export default async function VideosPage(props: {
         messages={messages} 
         items={videos.data}
         categories={VIDEO_CATEGORY_LABELS}
+        festivalYears={festivalYears.data.map((y) => y.year)}
         loadError={!videos.ok}
       />
     </main>

@@ -1,6 +1,6 @@
 import { draftMode } from "next/headers";
 import { getMessages } from "@/i18n/get-messages";
-import { getCmsGallery, GALLERY_CATEGORY_LABELS } from "@/lib/cms/content";
+import { getCmsFestivalYears, getCmsGallery, GALLERY_CATEGORY_LABELS } from "@/lib/cms/content";
 import { GalleryContent } from "./gallery-content";
 
 // Gallery data is managed in Payload. Do not capture it at Vercel build time.
@@ -22,7 +22,10 @@ export default async function GalleryPage(props: {
   const { locale } = await props.params;
   const messages = await getMessages(locale);
   const { isEnabled: draft } = await draftMode();
-  const gallery = await getCmsGallery({ draft });
+  const [gallery, festivalYears] = await Promise.all([
+    getCmsGallery({ draft }),
+    getCmsFestivalYears({ draft }),
+  ]);
   
   return (
     <main className="flex min-h-screen flex-col bg-gradient-to-b from-[#fdfbf7] via-orange-50/30 to-[#fdfbf7] dark:from-background dark:via-red-950/20 dark:to-background relative overflow-hidden">
@@ -35,6 +38,7 @@ export default async function GalleryPage(props: {
         messages={messages} 
         items={gallery.data}
         categories={GALLERY_CATEGORY_LABELS}
+        festivalYears={festivalYears.data.map((y) => y.year)}
         loadError={!gallery.ok}
       />
     </main>

@@ -6,8 +6,6 @@ test('test', async ({ page }) => {
   await page.locator('.absolute.inset-0.bg-gradient-to-t').click();
   await page.locator('.absolute.inset-0.bg-gradient-to-t').click();
   await page.getByRole('button', { name: 'Go to slide 1' }).click();
-  await page.getByRole('button', { name: 'View Festival' }).click();
-  await page.getByRole('link', { name: 'Home' }).click();
   await page.getByRole('button', { name: 'Donate' }).nth(1).click();
   await page.getByRole('link', { name: 'Home' }).click();
   await page.getByRole('button', { name: 'Explore Our Temple' }).click();
@@ -22,7 +20,7 @@ test('test', async ({ page }) => {
   await page.locator('.space-y-3.lg\\:items-start > .inline-flex > .lucide').click();
   await page.getByRole('button', { name: 'Donate' }).nth(2).click();
   await page.getByRole('link', { name: 'Home' }).click();
-  await page.locator('#contact').getByText('Sri Sakthi Vinayagar Temple Kulakarai Street Kadambadi Post Kadambadi').click();
+  await page.locator('#contact').getByText('Sri Sakthi Vinayagar Temple Kulakarai Street Kadambadi (Post) Kadambadi').click();
   await page.locator('.lucide.lucide-phone').first().click();
   await page.locator('div').filter({ hasText: /^Phone9600145775$/ }).first().click();
   await page.getByRole('button', { name: 'Call' }).click();
@@ -41,14 +39,11 @@ test('test', async ({ page }) => {
   await page.getByRole('contentinfo').getByRole('link', { name: '9600145775' }).click();
   await page.getByRole('contentinfo').getByRole('button', { name: 'Donate' }).click();
   await page.getByRole('link', { name: 'Home' }).click();
-  await page.getByRole('contentinfo').getByText('Sri Sakthi Vinayagar Temple Kulakarai Street Kadambadi Post Kadambadi').click();
+  await page.getByRole('contentinfo').getByText('Sri Sakthi Vinayagar Temple Kulakarai Street Kadambadi (Post) Kadambadi').click();
   await page.getByRole('contentinfo').getByRole('heading', { name: 'Temple Location' }).click();
   await page.getByRole('heading', { name: 'Temple', exact: true }).click();
   await page.getByRole('navigation', { name: 'Temple navigation' }).getByRole('link', { name: 'About' }).click();
   await page.getByRole('link', { name: 'Vinayagar Story' }).click();
-  await page.getByRole('link', { name: 'Festival' }).click();
-  await page.getByRole('heading', { name: 'Festival', exact: true }).click();
-  await page.getByRole('heading', { name: 'Festival', exact: true }).click();
   await page.getByRole('navigation', { name: 'Festival navigation' }).getByRole('link', { name: 'Winners' }).click();
   await page.getByRole('navigation', { name: 'Festival navigation' }).getByRole('link', { name: 'Gallery' }).click();
   await page.getByRole('navigation', { name: 'Festival navigation' }).getByRole('link', { name: 'Videos' }).click();

@@ -83,9 +83,9 @@ export function Countdown({ startDate, endDate, messages, locale = "ta" }: Count
           <p className="text-muted-foreground mb-4">
             {messages.home.countdownMemories}
           </p>
-          <Link href={`/${locale}/festival`}>
+          <Link href={`/${locale}/gallery`}>
             <Button className="gap-2 rounded-xl">
-              {messages.home.exploreFestival}
+              {messages.common.gallery}
             </Button>
           </Link>
         </div>
