@@ -32,6 +32,9 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns,
   },
+  experimental: {
+    lockDistDir: false,
+  },
 };
 
 export default withPayload(nextConfig);
