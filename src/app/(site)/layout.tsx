@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Playfair_Display, Noto_Sans_Tamil } from "next/font/google";
 import { ThemeProvider } from "@/components/layout/theme-provider";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 /* ========================================================================
@@ -49,10 +48,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${inter.variable} ${playfairDisplay.variable} ${notoSansTamil.variable} h-full`}
     >
       <body className="flex min-h-full flex-col font-sans antialiased">
-        <ThemeProvider>
-          {children}
-          <SpeedInsights />
-        </ThemeProvider>
+        <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>
   );
